@@ -24,6 +24,39 @@ function voteWstrzymaj() {
     })
 }
 
+function pollServerForUpdates() {
+    console.log("polling!")
+    $.ajax({
+        url: "ustawa",
+        type: "GET",
+        success: function(data) {
+            //$(".axis_block").css('background-color', 'white');
+            // Assuming data.axisA contains a value that completes the ID of the element you're targeting
+            console.log(data.axisA, data.axisB, data.axisC, data.axisD)
+            $(`#AxisA${data.axisA}`).css('background-color', 'red');
+            $(`#AxisA${data.axisA - 1}`).css('background-color', 'red');
+            $(`#AxisA${data.axisA + 1}`).css('background-color', 'red');
+
+            console.log(`axisA${data.axisA}`)
+            $(`#AxisB${data.axisB}`).css('background-color', 'red');
+            $(`#AxisB${data.axisB - 1}`).css('background-color', 'red');
+            $(`#AxisB${data.axisB + 1}`).css('background-color', 'red');
+
+            $(`#AxisC${data.axisC}`).css('background-color', 'red');
+            $(`#AxisC${data.axisC - 1}`).css('background-color', 'red');
+            $(`#AxisC${data.axisC + 1}`).css('background-color', 'red');
+
+            $(`#AxisD${data.axisD}`).css('background-color', 'red');
+            $(`#AxisD${data.axisD - 1}`).css('background-color', 'red');
+            $(`#AxisD${data.axisD + 1}`).css('background-color', 'red');
+        },
+        error: function(xhr, status, error) {
+            console.error("Error: " + error);
+        }
+    });
+}
+
+
 function setUstawa(code) {
     $.ajax({
         url: "ustawa",
@@ -61,6 +94,7 @@ function joinGame() {
 
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
+    setInterval(pollServerForUpdates, 3000);
     $.getJSON("join", (data, status) => {
         console.log(data)
     })

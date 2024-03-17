@@ -53,69 +53,86 @@ func main() {
 
 	http.HandleFunc("/ustawa", func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST requests
-		if r.Method != "POST" {
-			http.Error(w, "Method is not supported.", http.StatusMethodNotAllowed)
-			return
-		}
 
-		var reqBody RequestBody
+		switch r.Method {
+		case "GET":
+			resp := struct {
+				AxisA int `json:"axisA"`
+				AxisB int `json:"axisB"`
+				AxisC int `json:"axisC"`
+				AxisD int `json:"axisD"`
+			}{axisA, axisB, axisC, axisD}
 
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer r.Body.Close()
-
-		err = json.Unmarshal(body, &reqBody)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		if len(reqBody.Code) > 0 {
-			firstLetter := string(reqBody.Code[0])
-			secondNumber, err := strconv.Atoi(string(reqBody.Code[1:3]))
+			respJSON, err := json.Marshal(resp)
 			if err != nil {
-				fmt.Printf("Dupa")
-			}
-			fmt.Printf("First letter of code: %s Second letter of code: %d\n", firstLetter, secondNumber)
-
-			switch firstLetter {
-			case "A":
-				if axisA == secondNumber {
-					axisA = 0
-				} else {
-					axisA = secondNumber
-				}
-
-			case "B":
-				if axisB == secondNumber {
-					axisB = 0
-				} else {
-					axisB = secondNumber
-				}
-			case "C":
-				if axisC == secondNumber {
-					axisC = 0
-				} else {
-					axisC = secondNumber
-				}
-			case "D":
-				if axisD == secondNumber {
-					axisD = 0
-				} else {
-					axisD = secondNumber
-				}
-
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 
-			// Respond to the client
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf("Received your request with code starting with: %s", firstLetter)))
-		} else {
-			http.Error(w, "Code is empty", http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(respJSON)
+
+		case "POST":
+			var reqBody RequestBody
+
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer r.Body.Close()
+
+			err = json.Unmarshal(body, &reqBody)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			if len(reqBody.Code) > 0 {
+				firstLetter := string(reqBody.Code[0])
+				secondNumber, err := strconv.Atoi(string(reqBody.Code[1:3]))
+				if err != nil {
+					fmt.Printf("Dupa")
+				}
+				fmt.Printf("First letter of code: %s Second letter of code: %d\n", firstLetter, secondNumber)
+
+				switch firstLetter {
+				case "A":
+					if axisA == secondNumber {
+						axisA = 0
+					} else {
+						axisA = secondNumber
+					}
+
+				case "B":
+					if axisB == secondNumber {
+						axisB = 0
+					} else {
+						axisB = secondNumber
+					}
+				case "C":
+					if axisC == secondNumber {
+						axisC = 0
+					} else {
+						axisC = secondNumber
+					}
+				case "D":
+					if axisD == secondNumber {
+						axisD = 0
+					} else {
+						axisD = secondNumber
+					}
+
+				}
+
+				// Respond to the client
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(fmt.Sprintf("Received your request with code starting with: %s", firstLetter)))
+			} else {
+				http.Error(w, "Code is empty", http.StatusBadRequest)
+			}
 		}
+
 	})
 
 	http.HandleFunc("/leave", func(w http.ResponseWriter, r *http.Request) {
@@ -142,10 +159,6 @@ func main() {
 	http.HandleFunc("/wstrzymaj", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Correctly delivered your WSTRZYMAJ vote"))
 		fmt.Println("Player voted WSTRZYMAJ")
-	})
-
-	http.HandleFunc("/aktualna_ustawa", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%d, %d, %d, %d", axisA, axisB, axisC, axisD)
 	})
 
 	err := http.ListenAndServe("0.0.0.0:8080", nil)
