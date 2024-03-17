@@ -1,0 +1,69 @@
+.axis {
+    background-color: white;
+    display: flex;
+    height: 5%
+}
+
+.axis_block {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #000;
+
+}
+
+.klocki_space {
+    background-color: lightseagreen;
+    height: 19%
+}
+
+.statistics {
+    background-color: gray;
+    height: 4%
+}
+
+.voting {
+    display: flex;
+    justify-content: space-between;
+    background-color: blueviolet;
+    height : 100%
+}
+
+.vote_button {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+}
+
+.layout {
+    display: none;
+}
+
+@media screen and (orientation: portrait) {
+    #marszalek_layout {
+        display:block;
+    }
+}
+
+@media screen and (orientation: landscape) {
+    #prezes_layout {
+        display:block;
+    }
+}
+
+#za {
+    background-color: green;
+    box-shadow: inset 0 0 0 2vw #245718
+}
+
+#przeciw {
+    background: red;
+    box-shadow: inset 0 0 0 2vw #752121
+}
+
+#wstrzymaj {
+    background-color: yellow;
+    box-shadow: inset 0 0 0 2vw #575118
+}
