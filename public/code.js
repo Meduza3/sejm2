@@ -1,6 +1,5 @@
 // Initializing
 console.log("hello")
-handleOrientationChange();
 
 //!!! Definitions
 
@@ -25,6 +24,23 @@ function voteWstrzymaj() {
     })
 }
 
+function setUstawa(code) {
+    $.ajax({
+        url: "ustawa",
+        type: "POST",
+        contentType: "application/json", // Setting the content type as JSON
+        data: JSON.stringify({ code: code }), // Converting the JavaScript object to a JSON string
+        success: function(data, status) {
+            console.log("Data: " + data + "\nStatus: " + status);
+            // Handle success
+        },
+        error: function(xhr, status, error) {
+            console.error("Error: " + error + "\nStatus: " + status);
+            // Handle error
+        }
+    });
+}
+
 // Handlers, Interactables
 
 function handleOrientationChange() { // Handle switch between marszalek and prezes view
@@ -35,18 +51,29 @@ function handleOrientationChange() { // Handle switch between marszalek and prez
     }
 }
 
+function joinGame() {
+    $.getJSON("/join", function(player) {
+        let playerElement = $('<div class="opinion_cube"></div>').text($(player.id));
+        $()
+    })
+}
+
 
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
-    $.get("join", (data, status) => {
+    $.getJSON("join", (data, status) => {
         console.log(data)
     })
+
     $('#za').on('click', voteZa);
     $('#przeciw').on('click', votePrzeciw);
     $('#wstrzymaj').on('click', voteWstrzymaj);
 
+    $('.axis_block').on('click', function() {
+        let elementId = $(this).attr('id')
+        setUstawa(elementId.slice(-3))
+    })
 
-    $(window).resize(handleOrientationChange); 
     $(window).on('beforeunload pagehide', function() {
         $.get("leave")
     })
