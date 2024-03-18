@@ -388,7 +388,7 @@ $(document).ready(function() {
         setUstawa(elementId.slice(-3))
     })
 
-    $(window).on('beforeunload pagehide', function() {
+    $(window).on('pagehide', function() {
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ action: "leave", playerID: playerID }));
         }

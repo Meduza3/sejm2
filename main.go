@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -235,90 +234,6 @@ func main() {
 
 	fmt.Println("Server started!")
 
-	http.HandleFunc("/ustawa", func(w http.ResponseWriter, r *http.Request) {
-		// Only allow POST requests
-
-		switch r.Method {
-		case "GET":
-			resp := struct {
-				AxisA int `json:"axisA"`
-				AxisB int `json:"axisB"`
-				AxisC int `json:"axisC"`
-				AxisD int `json:"axisD"`
-			}{axisA, axisB, axisC, axisD}
-
-			respJSON, err := json.Marshal(resp)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(respJSON)
-
-		case "POST":
-			var reqBody RequestBody
-
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			defer r.Body.Close()
-
-			err = json.Unmarshal(body, &reqBody)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			if len(reqBody.Code) > 0 {
-				firstLetter := string(reqBody.Code[0])
-				secondNumber, err := strconv.Atoi(string(reqBody.Code[1:3]))
-				if err != nil {
-					fmt.Printf("Dupa")
-				}
-				fmt.Printf("First letter of code: %s Second letter of code: %d\n", firstLetter, secondNumber)
-
-				switch firstLetter {
-				case "A":
-					if axisA == secondNumber {
-						axisA = 0
-					} else {
-						axisA = secondNumber
-					}
-
-				case "B":
-					if axisB == secondNumber {
-						axisB = 0
-					} else {
-						axisB = secondNumber
-					}
-				case "C":
-					if axisC == secondNumber {
-						axisC = 0
-					} else {
-						axisC = secondNumber
-					}
-				case "D":
-					if axisD == secondNumber {
-						axisD = 0
-					} else {
-						axisD = secondNumber
-					}
-
-				}
-
-				// Respond to the client
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(fmt.Sprintf("Received your request with code starting with: %s", firstLetter)))
-			} else {
-				http.Error(w, "Code is empty", http.StatusBadRequest)
-			}
-		}
-
-	})
-
 	http.HandleFunc("/gracze", func(w http.ResponseWriter, r *http.Request) {
 		var allOpinions []map[string][4][4]int
 		mu.Lock()
@@ -340,17 +255,6 @@ func main() {
 
 		// Write the JSON response
 		w.Write(jsonResponse)
-	})
-
-	http.HandleFunc("/leave", func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		defer mu.Unlock()
-		ip := r.RemoteAddr
-		player := players[ip]
-		player_count--
-		fmt.Printf("LEAVE Player %d from IP %s left, count: %d\n", player.Id, player.IP, player_count)
-		delete(players, ip)
-
 	})
 
 	err := http.ListenAndServe("0.0.0.0:8080", nil)
