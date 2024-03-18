@@ -11,13 +11,14 @@
     justify-content: center;
     align-items: center;
     border: 1px solid #000;
+    width: 12.5%;
 
 }
 
 
 .statistics {
     background-color: gray;
-    height: 4%
+    height: 0%
 }
 
 .voting {
@@ -35,25 +36,39 @@
 }
 
 .opinion_cube {
-    background-color: chocolate;
+    /*background-color: chocolate; */
     height: 12.5%;
-    width: 12.5%;
+    width: 100%;
 }
 
 .klocki_space {
     display:flex;
-    background-color: lightseagreen;
-    height: 19%;
+    background-color: lightgray;
+    height: 17%;
     justify-content: space-around;
 }
 
 .klocki_column {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
     width: 12.5%;
     height: 100%;
 }
 
 .layout {
     display: none;
+}
+
+.podpis {
+    font-size: 5vw;
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 3%;
+    box-shadow: inset 0 0 0 0.5vw black;
 }
 
 @media screen and (orientation: portrait) {

@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type Player struct {
-	id       int
-	count    int
+	Id       int
+	Count    int
 	IP       string
-	opinions [4][4]int
+	Opinions [4][4]int
 }
 
 type RequestBody struct {
@@ -29,6 +31,34 @@ var (
 	axisD        int = 0
 )
 
+func randInt() int {
+	num := rand.Intn(8) - 4 // Generates a number between -4 and 3
+	if num >= 0 {
+		num++ // Adjusts the range to -4 to 4, excluding 0
+	}
+	return num
+}
+
+func randMod() int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(3) - 1
+}
+
+func clampToFour(val int) int {
+	if val < -4 {
+		return -4
+	} else if val > 4 {
+		return 4
+	} else if val == 0 {
+		if rand.Intn(2) == 0 {
+			return -1
+		} else {
+			return 1
+		}
+	}
+	return val
+}
+
 func main() {
 
 	var mu sync.Mutex
@@ -43,12 +73,30 @@ func main() {
 
 		player_count++
 		ip := r.RemoteAddr
-		player := Player{id: player_count, count: 100, IP: ip, opinions: [4][4]int{{-1, -1, 1, 1}, {-1, -1, 1, 1}, {-1, -1, 1, 1}, {-1, -1, 1, 1}}}
+		a := randInt()
+		b := randInt()
+		c := randInt()
+		d := randInt()
+		player := Player{Id: len(players) + 1, Count: 100, IP: ip, Opinions: [4][4]int{
+			{clampToFour(a), clampToFour(a + int(randMod())), clampToFour(a + int(randMod())), clampToFour(a + int(randMod()))},
+			{clampToFour(b), clampToFour(b + int(randMod())), clampToFour(b + int(randMod())), clampToFour(b + int(randMod()))},
+			{clampToFour(c), clampToFour(c + int(randMod())), clampToFour(c + int(randMod())), clampToFour(c + int(randMod()))},
+			{clampToFour(d), clampToFour(d + int(randMod())), clampToFour(d + int(randMod())), clampToFour(d + int(randMod()))},
+		}}
 		players[ip] = player
 
 		w.Header().Set("Content-Type", "application/json")
-		response := fmt.Sprintf(`{"id": %d, "count": %d, "IP": "%s"}`, player.id, player.count, player.IP)
-		w.Write([]byte(response))
+
+		// Marshal player struct to JSON
+		jsonResponse, err := json.Marshal(player)
+		if err != nil {
+			// Handle error
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// The player struct, including opinions, is now converted into a JSON string and sent in the response
+		w.Write([]byte(jsonResponse))
 	})
 
 	http.HandleFunc("/ustawa", func(w http.ResponseWriter, r *http.Request) {
@@ -135,13 +183,36 @@ func main() {
 
 	})
 
+	http.HandleFunc("/gracze", func(w http.ResponseWriter, r *http.Request) {
+		var allOpinions []map[string][4][4]int
+		mu.Lock()
+		defer mu.Unlock()
+
+		for _, player := range players {
+			allOpinions = append(allOpinions, map[string][4][4]int{fmt.Sprintf("Player%d", player.Id): player.Opinions})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		// Convert the slice of opinions to JSON
+		jsonResponse, err := json.Marshal(allOpinions)
+		if err != nil {
+			// Handle error
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Write the JSON response
+		w.Write(jsonResponse)
+	})
+
 	http.HandleFunc("/leave", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 		ip := r.RemoteAddr
 		player := players[ip]
 		player_count--
-		fmt.Printf("LEAVE Player %d from IP %s left, count: %d\n", player.id, player.IP, player_count)
+		fmt.Printf("LEAVE Player %d from IP %s left, count: %d\n", player.Id, player.IP, player_count)
 		delete(players, ip)
 
 	})
