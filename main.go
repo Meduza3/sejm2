@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -34,8 +35,9 @@ type RequestBody struct {
 }
 
 type WSMessage struct {
-	Action string `json:"action"`
+	Action   string `json:"action"`
 	PlayerID int    `json:"playerID,omitempty"`
+	Ustawa   string `json:"ustawa,omitempty"`
 }
 
 var (
@@ -45,6 +47,7 @@ var (
 	axisB        int = 0
 	axisC        int = 0
 	axisD        int = 0
+	axes         [4]int
 )
 
 func randInt() int {
@@ -76,7 +79,7 @@ func clampToFour(val int) int {
 }
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize: 1024,
+	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -84,8 +87,8 @@ var upgrader = websocket.Upgrader{
 }
 
 var (
-	clients = make(map[*websocket.Conn]bool )
-	mu sync.Mutex
+	clients = make(map[*websocket.Conn]bool)
+	mu      sync.Mutex
 )
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -108,21 +111,64 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(clients, ws)
 			break
 		}
-		
+
 		switch msg.Action {
-			case "join":
-				handleJoin(ws)
-			case "leave":
-				handleLeave(msg.PlayerID)
-			case "za":
-				handleZaVote(msg.PlayerID)
-			case "przeciw":
-				handlePrzeciwVote(msg.PlayerID)
-			case "wstrzymaj":
-				handleWstrzymajVote(msg.PlayerID)
+		case "join":
+			handleJoin(ws)
+		case "leave":
+			handleLeave(msg.PlayerID)
+		case "za":
+			handleZaVote(msg.PlayerID)
+		case "przeciw":
+			handlePrzeciwVote(msg.PlayerID)
+		case "wstrzymaj":
+			handleWstrzymajVote(msg.PlayerID)
+		case "ustawa":
+			handleUstawa(msg.Ustawa)
 		}
 	}
 }
+
+func handleUstawa(ustawa string) {
+	firstLetter := string(ustawa[0])
+	secondNumber, err := strconv.Atoi(string(ustawa[1:3]))
+	if err != nil {
+		fmt.Printf("Dupa")
+	}
+	fmt.Printf("First letter of code: %s Second letter of code: %d\n", firstLetter, secondNumber)
+
+	switch firstLetter {
+	case "A":
+		if axes[0] == secondNumber {
+			axes[0] = 0
+		} else {
+			axes[0] = secondNumber
+		}
+
+	case "B":
+		if axes[1] == secondNumber {
+			axes[1] = 0
+		} else {
+			axes[1] = secondNumber
+		}
+	case "C":
+		if axes[2] == secondNumber {
+			axes[2] = 0
+		} else {
+			axes[2] = secondNumber
+		}
+	case "D":
+		if axes[3] == secondNumber {
+			axes[3] = 0
+		} else {
+			axes[3] = secondNumber
+		}
+
+	}
+	axesData := map[string][4]int{"axes": axes}
+	broadcastToClients(axesData)
+}
+
 func handleLeave(playerID int) {
 	fmt.Printf("Player %d LEFT\n", playerID)
 }
@@ -140,35 +186,34 @@ func handleWstrzymajVote(playerID int) {
 }
 
 func handleJoin(ws *websocket.Conn) {
-    mu.Lock()
-    defer mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
-    player_count++
-    ip := ws.RemoteAddr().String() // This may not be as useful with WebSockets, consider alternatives for unique identifiers
-    a := randInt()
-    b := randInt()
-    c := randInt()
-    d := randInt()
-    player := Player{
-        Id:       len(players) + 1,
-        Count:    100,
-        IP:       ip,
-        Opinions: [4][4]int{
-            {a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
-            {b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
-            {c, clampToFour(c + randMod()), clampToFour(c + randMod()), clampToFour(c + randMod())},
-            {d, clampToFour(d + randMod()), clampToFour(d + randMod()), clampToFour(d + randMod())},
-        },
-    }
-    fmt.Printf("Player %d with IP %s joined\n", player.Id, player.IP)
-    players[ip] = player // You might want to use a different key for WebSocket clients
+	player_count++
+	ip := ws.RemoteAddr().String() // This may not be as useful with WebSockets, consider alternatives for unique identifiers
+	a := randInt()
+	b := randInt()
+	c := randInt()
+	d := randInt()
+	player := Player{
+		Id:    len(players) + 1,
+		Count: 100,
+		IP:    ip,
+		Opinions: [4][4]int{
+			{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
+			{b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
+			{c, clampToFour(c + randMod()), clampToFour(c + randMod()), clampToFour(c + randMod())},
+			{d, clampToFour(d + randMod()), clampToFour(d + randMod()), clampToFour(d + randMod())},
+		},
+	}
+	fmt.Printf("Player %d with IP %s joined\n", player.Id, player.IP)
+	players[ip] = player // You might want to use a different key for WebSocket clients
 
-    // Send the player data back to the client
-    if err := ws.WriteJSON(player); err != nil {
-        fmt.Println("error sending join response:", err)
-    }
+	// Send the player data back to the client
+	if err := ws.WriteJSON(player); err != nil {
+		fmt.Println("error sending join response:", err)
+	}
 }
-
 
 func broadcastToClients(message interface{}) {
 	mu.Lock()
@@ -185,13 +230,10 @@ func broadcastToClients(message interface{}) {
 
 func main() {
 
-
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/ws", handleConnections)
 
-
 	fmt.Println("Server started!")
-
 
 	http.HandleFunc("/ustawa", func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST requests
