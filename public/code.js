@@ -2,56 +2,62 @@
 console.log("hello")
 
 let playerID = 0;
+var socket = new WebSocket('ws://192.168.0.111:8080/ws')
+
+socket.onopen = function(e) {
+    console.log("Connection established");
+    socket.send(JSON.stringify({action: "join"}))
+}
+
+socket.onmessage = function(event) {
+    var data = JSON.parse(event.data);
+    console.log("Recieved data:", data);
+    if(data.Id) {
+        playerID = data.Id
+    } else if (data.Ustawa) {
+        
+    }
+}
+
+socket.onclose = function(event) {
+    if (event.wasClean) {
+        console.log(`Connection closed cleanly, code=${event.code}, reason=${event.reason}`)
+    } else {
+        console.log('Connection died')
+    }
+}
+
+socket.onerror = function(error) {
+    console.error(`[Websocket Error] ${error.message}`)
+}
 
 //!!! Definitions
 
-function voteZa(playerID) { // Added playerID parameter to function
-    //Send Request of ZA
-    $.ajax({
-        url: "/za",
-        type: "POST",
-        contentType: "application/json", // Setting the content type as JSON
-        data: JSON.stringify({ playerID: playerID }), // Match the key name expected by the server
-        success: function(data, status) {
-            console.log("Data: " + data + "\nStatus: " + status);
-            // Handle success
-        },
-        error: function(xhr, status, error) {
-            console.error("Error: " + error + "\nStatus: " + status);
-            // Handle error
-        }
-    });
-}
+function voteZa(playerID) {
+    const message = {
+        action: "za",
+        playerID: playerID
+    };
 
+    socket.send(JSON.stringify(message));
+}
 
 function votePrzeciw(playerID) {
-    $.ajax({
-        url: "/przeciw",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({ playerID: playerID }),
-        success: function(data, status) {
-            console.log("Data: " + data + "\nStatus: " + status);
-        },
-        error: function(xhr, status, error) {
-            console.error("Error: " + error + "\nStatus: " + status);
-        }
-    });
+    const message = {
+        action: "przeciw",
+        playerID: playerID
+    };
+
+    socket.send(JSON.stringify(message));
 }
 
-function voteWstrzymaj(playerID) { 
-    $.ajax({
-        url: "/wstrzymaj",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({ playerID: playerID }),
-        success: function(data, status) {
-            console.log("Data: " + data + "\nStatus: " + status);
-        },
-        error: function(xhr, status, error) {
-            console.error("Error: " + error + "\nStatus: " + status);
-        }
-    });
+function voteWstrzymaj(playerID) {
+    const message = {
+        action: "wstrzymaj",
+        playerID: playerID
+    };
+
+    socket.send(JSON.stringify(message));
 }
 
 let currentPlayerOpinions;
@@ -122,8 +128,6 @@ function drawPlayers() {
 
 
 function pollServerForUpdates() {
-    //console.log("polling!")
-
     drawPlayers()
 
     $.ajax({
@@ -411,6 +415,9 @@ $(document).ready(function() {
     })
 
     $(window).on('beforeunload pagehide', function() {
-        $.get("leave")
-    })
+        if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ action: "leave", playerID: playerID }));
+        }
+    });
+    
 })

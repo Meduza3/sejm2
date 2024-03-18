@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"github.com/gorilla/websocket"
 )
 
 type Player struct {
@@ -30,6 +31,11 @@ const (
 
 type RequestBody struct {
 	Code string `json:"code"`
+}
+
+type WSMessage struct {
+	Action string `json:"action"`
+	PlayerID int    `json:"playerID,omitempty"`
 }
 
 var (
@@ -69,46 +75,123 @@ func clampToFour(val int) int {
 	return val
 }
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize: 1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+var (
+	clients = make(map[*websocket.Conn]bool )
+	mu sync.Mutex
+)
+
+func handleConnections(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer ws.Close()
+
+	mu.Lock()
+	clients[ws] = true
+	mu.Unlock()
+
+	for {
+		var msg WSMessage
+		err := ws.ReadJSON(&msg)
+		if err != nil {
+			fmt.Printf("error: %v", err)
+			delete(clients, ws)
+			break
+		}
+		
+		switch msg.Action {
+			case "join":
+				handleJoin(ws)
+			case "leave":
+				handleLeave(msg.PlayerID)
+			case "za":
+				handleZaVote(msg.PlayerID)
+			case "przeciw":
+				handlePrzeciwVote(msg.PlayerID)
+			case "wstrzymaj":
+				handleWstrzymajVote(msg.PlayerID)
+		}
+	}
+}
+func handleLeave(playerID int) {
+	fmt.Printf("Player %d LEFT\n", playerID)
+}
+
+func handleZaVote(playerID int) {
+	fmt.Printf("Player %d voted ZA\n", playerID)
+}
+
+func handlePrzeciwVote(playerID int) {
+	fmt.Printf("Player %d voted PRZECIW\n", playerID)
+}
+
+func handleWstrzymajVote(playerID int) {
+	fmt.Printf("Player %d voted WSTRZYMAJ\n", playerID)
+}
+
+func handleJoin(ws *websocket.Conn) {
+    mu.Lock()
+    defer mu.Unlock()
+
+    player_count++
+    ip := ws.RemoteAddr().String() // This may not be as useful with WebSockets, consider alternatives for unique identifiers
+    a := randInt()
+    b := randInt()
+    c := randInt()
+    d := randInt()
+    player := Player{
+        Id:       len(players) + 1,
+        Count:    100,
+        IP:       ip,
+        Opinions: [4][4]int{
+            {a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
+            {b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
+            {c, clampToFour(c + randMod()), clampToFour(c + randMod()), clampToFour(c + randMod())},
+            {d, clampToFour(d + randMod()), clampToFour(d + randMod()), clampToFour(d + randMod())},
+        },
+    }
+    fmt.Printf("Player %d with IP %s joined\n", player.Id, player.IP)
+    players[ip] = player // You might want to use a different key for WebSocket clients
+
+    // Send the player data back to the client
+    if err := ws.WriteJSON(player); err != nil {
+        fmt.Println("error sending join response:", err)
+    }
+}
+
+
+func broadcastToClients(message interface{}) {
+	mu.Lock()
+	defer mu.Unlock()
+	for client := range clients {
+		err := client.WriteJSON(message)
+		if err != nil {
+			fmt.Printf("error: %v", err)
+			client.Close()
+			delete(clients, client)
+		}
+	}
+}
+
 func main() {
 
-	var mu sync.Mutex
 
 	http.Handle("/", http.FileServer(http.Dir("public")))
+	http.HandleFunc("/ws", handleConnections)
+
 
 	fmt.Println("Server started!")
 
-	http.HandleFunc("/join", func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		defer mu.Unlock()
-
-		player_count++
-		ip := r.RemoteAddr
-		a := randInt()
-		b := randInt()
-		c := randInt()
-		d := randInt()
-		player := Player{Id: len(players) + 1, Count: 100, IP: ip, Opinions: [4][4]int{
-			{a, clampToFour(a + int(randMod())), clampToFour(a + int(randMod())), clampToFour(a + int(randMod()))},
-			{b, clampToFour(b + int(randMod())), clampToFour(b + int(randMod())), clampToFour(b + int(randMod()))},
-			{c, clampToFour(c + int(randMod())), clampToFour(c + int(randMod())), clampToFour(c + int(randMod()))},
-			{d, clampToFour(d + int(randMod())), clampToFour(d + int(randMod())), clampToFour(d + int(randMod()))},
-		}}
-		fmt.Printf("Player %d with IP %s joined\n", player.Id, player.IP)
-		players[ip] = player
-
-		w.Header().Set("Content-Type", "application/json")
-
-		// Marshal player struct to JSON
-		jsonResponse, err := json.Marshal(player)
-		if err != nil {
-			// Handle error
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// The player struct, including opinions, is now converted into a JSON string and sent in the response
-		w.Write([]byte(jsonResponse))
-	})
 
 	http.HandleFunc("/ustawa", func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST requests
@@ -226,69 +309,6 @@ func main() {
 		fmt.Printf("LEAVE Player %d from IP %s left, count: %d\n", player.Id, player.IP, player_count)
 		delete(players, ip)
 
-	})
-
-	http.HandleFunc("/za", func(w http.ResponseWriter, r *http.Request) {
-		// Read the body to a variable
-		var requestBody map[string]int // Assuming playerID is an int, adjust the type as necessary
-
-		// Parse the JSON body into the map
-		err := json.NewDecoder(r.Body).Decode(&requestBody)
-		if err != nil {
-			// Handle error
-			http.Error(w, "Error reading request body", http.StatusBadRequest)
-			return
-		}
-
-		// Extract the playerID
-		playerID, ok := requestBody["playerID"]
-		if !ok {
-			// Handle missing playerID
-			http.Error(w, "Missing playerID in request body", http.StatusBadRequest)
-			return
-		}
-
-		// Respond to the client
-		w.Write([]byte("Correctly delivered your ZA vote"))
-
-		// Log the vote
-		fmt.Printf("Player %d voted ZA\n", playerID)
-	})
-
-	http.HandleFunc("/przeciw", func(w http.ResponseWriter, r *http.Request) {
-		var requestBody map[string]int
-
-		err := json.NewDecoder(r.Body).Decode(&requestBody)
-		if err != nil {
-			http.Error(w, "Error reading request body", http.StatusBadRequest)
-			return
-		}
-
-		playerID, ok := requestBody["playerID"]
-		if !ok {
-			http.Error(w, "Missing playerID in request body", http.StatusBadRequest)
-			return
-		}
-		w.Write([]byte("Correctly delivered your PRZECIW vote"))
-		fmt.Printf("Player %d voted PRZECIW\n", playerID)
-	})
-
-	http.HandleFunc("/wstrzymaj", func(w http.ResponseWriter, r *http.Request) {
-		var requestBody map[string]int
-
-		err := json.NewDecoder(r.Body).Decode(&requestBody)
-		if err != nil {
-			http.Error(w, "Error reading request body", http.StatusBadRequest)
-			return
-		}
-
-		playerID, ok := requestBody["playerID"]
-		if !ok {
-			http.Error(w, "Missing playerID in request body", http.StatusBadRequest)
-			return
-		}
-		w.Write([]byte("Correctly delivered your WSTRZYMAJ vote"))
-		fmt.Printf("Player %d voted WSTRZYMAJ\n", playerID)
 	})
 
 	err := http.ListenAndServe("0.0.0.0:8080", nil)
