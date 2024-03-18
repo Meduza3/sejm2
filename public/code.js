@@ -24,27 +24,30 @@ function voteWstrzymaj() {
     })
 }
 
+let currentPlayerOpinions;
+
 function drawPlayers() {
-    $(".opinion_cube").remove(); // Remove existing .opinion_cube elements
     $.getJSON("/gracze", function(data) {
         console.log("Received player opinions:", data);
-
-        data.forEach((playerOpinions, index) => {
-            const playerId = Object.keys(playerOpinions)[0];
-            const opinions = playerOpinions[playerId];
-            for (let i = 0; i < opinions.length; i++) {
-                let axis_opinion = opinions[i];
-                let col_code = ["A", "B", "C", "D"][i];
-
-                for (let j = 0; j < axis_opinion.length; j++) {
-                    let col_number = axis_opinion[j] > 0 ? `0${axis_opinion[j]}` : axis_opinion[j];
-                    $(`#column${col_code}${col_number}`).append(`<div class="opinion_cube ${playerId}"></div>`);
+        if(currentPlayerOpinions != data){
+            $(".opinion_cube").remove(); // Remove existing .opinion_cube elements
+            currentPlayerOpinions = data;
+            data.forEach((playerOpinions, index) => {
+                const playerId = Object.keys(playerOpinions)[0];
+                const opinions = playerOpinions[playerId];
+                for (let i = 0; i < opinions.length; i++) {
+                    let axis_opinion = opinions[i];
+                    let col_code = ["A", "B", "C", "D"][i];
+    
+                    for (let j = 0; j < axis_opinion.length; j++) {
+                        let col_number = axis_opinion[j] > 0 ? `0${axis_opinion[j]}` : axis_opinion[j];
+                        $(`#column${col_code}${col_number}`).append(`<div class="opinion_cube ${playerId}"></div>`);
+                    }
                 }
+                console.log(`Player ${index + 1}'s Opinions:`, playerOpinions);
             }
-            console.log(`Player ${index + 1}'s Opinions:`, playerOpinions);
-        });
-
-        // Now apply the background color changes
+            );
+            // Now apply the background color changes
         $(".Player1").css({
             "background-color": "red",
             "box-shadow": "inset 0 0 2vw darkred"
@@ -78,6 +81,8 @@ function drawPlayers() {
             "box-shadow": "inset 0 0 2vw indigo"
           });
           
+
+        }
 
     }).fail(function(jqXHR, textStatus, errorThrown) {
         console.error("Error fetching player opinions:", textStatus, errorThrown);
