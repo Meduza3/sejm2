@@ -42,10 +42,6 @@ type WSMessage struct {
 var (
 	players          = make(map[string]Player)
 	player_count int = 0
-	axisA        int = 0
-	axisB        int = 0
-	axisC        int = 0
-	axisD        int = 0
 	axes         [4]int
 )
 

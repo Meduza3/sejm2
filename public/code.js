@@ -364,12 +364,6 @@ function handleOrientationChange() { // Handle switch between marszalek and prez
 $(document).ready(function() {
     setInterval(pollServerForUpdates, 1500);
 
-    $.getJSON("/join", (data, status) => {
-        console.log(data)
-        playerID = data.Id
-        console.log("PlayerID: " + playerID)
-    })
-
     $('#za').on('click', function() {
         voteZa(playerID);
     });
