@@ -1,3 +1,7 @@
+body {
+    background-color: rgb(128, 53, 26);
+}
+
 .axis {
     background-color: white;
     display: flex;
@@ -33,6 +37,7 @@
     flex: 1;
     justify-content: center;
     align-items: center;
+    width: 33.33%
 }
 
 .opinion_cube {
@@ -69,6 +74,10 @@
     align-items: center;
     height: 3%;
     box-shadow: inset 0 0 0 0.5vw black;
+}
+
+.dimmed {
+    opacity: 0.3; /* Adjust the opacity to dim the button */
 }
 
 @media screen and (orientation: portrait) {

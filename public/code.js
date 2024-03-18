@@ -324,6 +324,18 @@ function setUstawa(code) {
     });
 }
 
+function toggleButtonState(clickedId) {
+    if ($('#' + clickedId).hasClass('active')) {
+        // If the clicked button was already active, remove the dimming from all buttons
+        $('.vote_button').removeClass('dimmed active');
+    } else {
+        // Dim all buttons and mark the clicked one as active
+        $('.vote_button').addClass('dimmed').removeClass('active');
+        $('#' + clickedId).removeClass('dimmed').addClass('active');
+    }
+}
+
+
 // Handlers, Interactables
 
 function handleOrientationChange() { // Handle switch between marszalek and prezes view
@@ -345,6 +357,9 @@ $(document).ready(function() {
     $('#za').on('click', voteZa);
     $('#przeciw').on('click', votePrzeciw);
     $('#wstrzymaj').on('click', voteWstrzymaj);
+    $('#za, #przeciw, #wstrzymaj').on('click', function() {
+        toggleButtonState(this.id);
+    });
 
     $('.axis_block').on('click', function() {
         let elementId = $(this).attr('id')
