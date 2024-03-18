@@ -1,34 +1,64 @@
 // Initializing
 console.log("hello")
 
+let playerID = 0;
+
 //!!! Definitions
 
-function voteZa() {
+function voteZa(playerID) { // Added playerID parameter to function
     //Send Request of ZA
-    $.get("za", (data, status) => {
-        console.log(data)
-    })
+    $.ajax({
+        url: "/za",
+        type: "POST",
+        contentType: "application/json", // Setting the content type as JSON
+        data: JSON.stringify({ playerID: playerID }), // Match the key name expected by the server
+        success: function(data, status) {
+            console.log("Data: " + data + "\nStatus: " + status);
+            // Handle success
+        },
+        error: function(xhr, status, error) {
+            console.error("Error: " + error + "\nStatus: " + status);
+            // Handle error
+        }
+    });
 }
 
-function votePrzeciw() {
-    //Send Request of ZA
-    $.get("przeciw", (data, status) => {
-        console.log(data)
-    })
+
+function votePrzeciw(playerID) {
+    $.ajax({
+        url: "/przeciw",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ playerID: playerID }),
+        success: function(data, status) {
+            console.log("Data: " + data + "\nStatus: " + status);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error: " + error + "\nStatus: " + status);
+        }
+    });
 }
 
-function voteWstrzymaj() {
-    //Send Request of ZA
-    $.get("wstrzymaj", (data, status) => {
-        console.log(data)
-    })
+function voteWstrzymaj(playerID) { 
+    $.ajax({
+        url: "/wstrzymaj",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ playerID: playerID }),
+        success: function(data, status) {
+            console.log("Data: " + data + "\nStatus: " + status);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error: " + error + "\nStatus: " + status);
+        }
+    });
 }
 
 let currentPlayerOpinions;
 
 function drawPlayers() {
     $.getJSON("/gracze", function(data) {
-        console.log("Received player opinions:", data);
+        //console.log("Received player opinions:", data);
         if(currentPlayerOpinions != data){
             $(".opinion_cube").remove(); // Remove existing .opinion_cube elements
             currentPlayerOpinions = data;
@@ -44,7 +74,7 @@ function drawPlayers() {
                         $(`#column${col_code}${col_number}`).append(`<div class="opinion_cube ${playerId}"></div>`);
                     }
                 }
-                console.log(`Player ${index + 1}'s Opinions:`, playerOpinions);
+               // console.log(`Player ${index + 1}'s Opinions:`, playerOpinions);
             }
             );
             // Now apply the background color changes
@@ -92,7 +122,7 @@ function drawPlayers() {
 
 
 function pollServerForUpdates() {
-    console.log("polling!")
+    //console.log("polling!")
 
     drawPlayers()
 
@@ -102,7 +132,7 @@ function pollServerForUpdates() {
         success: function(data) {
             $(".axis_block").css('background-color', 'white');
             // Assuming data.axisA contains a value that completes the ID of the element you're targeting
-            console.log(data.axisA, data.axisB, data.axisC, data.axisD)
+           // console.log(data.axisA, data.axisB, data.axisC, data.axisD)
         
             if(data.axisA != 0){
                 switch (data.axisA) {
@@ -355,13 +385,22 @@ function handleOrientationChange() { // Handle switch between marszalek and prez
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
     setInterval(pollServerForUpdates, 1500);
-    $.getJSON("join", (data, status) => {
+
+    $.getJSON("/join", (data, status) => {
         console.log(data)
+        playerID = data.Id
+        console.log("PlayerID: " + playerID)
     })
 
-    $('#za').on('click', voteZa);
-    $('#przeciw').on('click', votePrzeciw);
-    $('#wstrzymaj').on('click', voteWstrzymaj);
+    $('#za').on('click', function() {
+        voteZa(playerID);
+    });
+    $('#przeciw').on('click', function() {
+        votePrzeciw(playerID);
+    });
+    $('#wstrzymaj').on('click', function() {
+        voteWstrzymaj(playerID);
+    });
     $('#za, #przeciw, #wstrzymaj').on('click', function() {
         toggleButtonState(this.id);
     });

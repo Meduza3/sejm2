@@ -16,7 +16,17 @@ type Player struct {
 	Count    int
 	IP       string
 	Opinions [4][4]int
+	Vote     Vote
 }
+
+type Vote string
+
+const (
+	FOR     Vote = "FOR"
+	AGAINST Vote = "AGAINST"
+	ABSTAIN Vote = "ABSTAIN"
+	NULL    Vote = "NULL"
+)
 
 type RequestBody struct {
 	Code string `json:"code"`
@@ -78,11 +88,12 @@ func main() {
 		c := randInt()
 		d := randInt()
 		player := Player{Id: len(players) + 1, Count: 100, IP: ip, Opinions: [4][4]int{
-			{clampToFour(a), clampToFour(a + int(randMod())), clampToFour(a + int(randMod())), clampToFour(a + int(randMod()))},
-			{clampToFour(b), clampToFour(b + int(randMod())), clampToFour(b + int(randMod())), clampToFour(b + int(randMod()))},
-			{clampToFour(c), clampToFour(c + int(randMod())), clampToFour(c + int(randMod())), clampToFour(c + int(randMod()))},
-			{clampToFour(d), clampToFour(d + int(randMod())), clampToFour(d + int(randMod())), clampToFour(d + int(randMod()))},
+			{a, clampToFour(a + int(randMod())), clampToFour(a + int(randMod())), clampToFour(a + int(randMod()))},
+			{b, clampToFour(b + int(randMod())), clampToFour(b + int(randMod())), clampToFour(b + int(randMod()))},
+			{c, clampToFour(c + int(randMod())), clampToFour(c + int(randMod())), clampToFour(c + int(randMod()))},
+			{d, clampToFour(d + int(randMod())), clampToFour(d + int(randMod())), clampToFour(d + int(randMod()))},
 		}}
+		fmt.Printf("Player %d with IP %s joined\n", player.Id, player.IP)
 		players[ip] = player
 
 		w.Header().Set("Content-Type", "application/json")
@@ -218,18 +229,66 @@ func main() {
 	})
 
 	http.HandleFunc("/za", func(w http.ResponseWriter, r *http.Request) {
+		// Read the body to a variable
+		var requestBody map[string]int // Assuming playerID is an int, adjust the type as necessary
+
+		// Parse the JSON body into the map
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		if err != nil {
+			// Handle error
+			http.Error(w, "Error reading request body", http.StatusBadRequest)
+			return
+		}
+
+		// Extract the playerID
+		playerID, ok := requestBody["playerID"]
+		if !ok {
+			// Handle missing playerID
+			http.Error(w, "Missing playerID in request body", http.StatusBadRequest)
+			return
+		}
+
+		// Respond to the client
 		w.Write([]byte("Correctly delivered your ZA vote"))
-		fmt.Println("Player voted ZA")
+
+		// Log the vote
+		fmt.Printf("Player %d voted ZA\n", playerID)
 	})
 
 	http.HandleFunc("/przeciw", func(w http.ResponseWriter, r *http.Request) {
+		var requestBody map[string]int
+
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusBadRequest)
+			return
+		}
+
+		playerID, ok := requestBody["playerID"]
+		if !ok {
+			http.Error(w, "Missing playerID in request body", http.StatusBadRequest)
+			return
+		}
 		w.Write([]byte("Correctly delivered your PRZECIW vote"))
-		fmt.Println("Player voted PRZECIW")
+		fmt.Printf("Player %d voted PRZECIW\n", playerID)
 	})
 
 	http.HandleFunc("/wstrzymaj", func(w http.ResponseWriter, r *http.Request) {
+		var requestBody map[string]int
+
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusBadRequest)
+			return
+		}
+
+		playerID, ok := requestBody["playerID"]
+		if !ok {
+			http.Error(w, "Missing playerID in request body", http.StatusBadRequest)
+			return
+		}
 		w.Write([]byte("Correctly delivered your WSTRZYMAJ vote"))
-		fmt.Println("Player voted WSTRZYMAJ")
+		fmt.Printf("Player %d voted WSTRZYMAJ\n", playerID)
 	})
 
 	err := http.ListenAndServe("0.0.0.0:8080", nil)
