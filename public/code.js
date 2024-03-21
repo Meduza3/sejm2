@@ -2,7 +2,11 @@
 console.log("hello")
 
 let playerID = 0;
-var socket = new WebSocket('ws://192.168.0.111:8080/ws')
+let opinions = [[0,0,0,0],
+                [0,0,0,0],
+                [0,0,0,0],
+                [0,0,0,0]]
+var socket = new WebSocket('ws://localhost:8080/ws')
 
 socket.onopen = function(e) {
     console.log("Connection established");
@@ -17,6 +21,12 @@ socket.onmessage = function(event) {
     } else if (data.axes) {
         updateAxes(data.axes)
     } else if (data.players) {
+        console.log("got some data.players uwu")
+        data.players.forEach((player) => {
+            if(player.PlayerId == playerID){
+                opinions = player.opinions
+            }
+        })
         drawPlayersNew(data.players);
     }
 }
@@ -320,16 +330,9 @@ function drawPlayersNew(players) {
       });
 
       $(".opinion_cube").on('click', function() {
-        console.log(playerID)
-        if($(this).hasClass(`Player${playerID}`)){
-            this.style.backgroundColor = "black"
-        a = getRandomNonZero()
-        b = getRandomNonZero()
-        c = getRandomNonZero()
-        d = getRandomNonZero()
-          setOpinions([[a, a + 1, a, a - 1], [b, b + 1, b, b - 1], [c, c + 1, c, c - 1], [d, d + 1, d, d - 1]])
-        }
-          
+        event.stopPropagation()
+        cube = this
+        $(".klocki_column").css({"border":"10px solid black"})
       })
 
       switch (playerID) {
@@ -398,6 +401,21 @@ function handleOrientationChange() { // Handle switch between marszalek and prez
         console.log("We are in landscape mode");
     }
 }
+
+let cube = null
+
+function selectAsDestinationForBlock(column){
+    console.log("clicking column")
+    if(cube){
+        console.log(column)
+        //$(column).css({"background-color":"black"})
+        $(column).append(cube)
+        $(".klocki_column").css({"border":"0px solid black"})
+        cube = null
+
+    }
+
+}
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
     //drawPlayers();
@@ -418,6 +436,10 @@ $(document).ready(function() {
     $('.axis_block').on('click', function() {
         let elementId = $(this).attr('id')
         setUstawa(elementId.slice(-3))
+    })
+
+    $(('.klocki_column')).on('click', function() {
+        selectAsDestinationForBlock(this)
     })
 
     $(window).on('pagehide', function() {
