@@ -12,10 +12,12 @@ socket.onopen = function(e) {
 socket.onmessage = function(event) {
     var data = JSON.parse(event.data);
     console.log("Recieved data:", data);
-    if(data.Id) {
+    if(data.Id && !playerID) {
         playerID = data.Id
     } else if (data.axes) {
         updateAxes(data.axes)
+    } else if (data.players) {
+        drawPlayersNew(data.players);
     }
 }
 
@@ -263,78 +265,116 @@ function updateAxes(axes){
 
 let currentPlayerOpinions;
 
-function drawPlayers() {
-    $.getJSON("/gracze", function(data) {
-        //console.log("Received player opinions:", data);
-        if(currentPlayerOpinions != data){
-            $(".opinion_cube").remove(); // Remove existing .opinion_cube elements
-            currentPlayerOpinions = data;
-            data.forEach((playerOpinions, index) => {
-                const playerId = Object.keys(playerOpinions)[0];
-                const opinions = playerOpinions[playerId];
-                for (let i = 0; i < opinions.length; i++) {
-                    let axis_opinion = opinions[i];
-                    let col_code = ["A", "B", "C", "D"][i];
-    
-                    for (let j = 0; j < axis_opinion.length; j++) {
-                        let col_number = axis_opinion[j] > 0 ? `0${axis_opinion[j]}` : axis_opinion[j];
-                        $(`#column${col_code}${col_number}`).append(`<div class="opinion_cube ${playerId}"></div>`);
-                    }
-                }
-               // console.log(`Player ${index + 1}'s Opinions:`, playerOpinions);
+function drawPlayersNew(players) {
+    console.log("Inside drawPlayersNew!")
+    $(".opinion_cube").remove();
+    console.log(players)
+    players.forEach((player) => {
+        player_opinions = player.Opinions
+        playerId = player.Id
+        console.log("Opinions: " + player.Opinions)
+        for(let i = 0; i < player_opinions.length; i++) {
+
+            let axis_opinion = player_opinions[i]
+            let col_code = ["A", "B", "C", "D"][i]
+            console.log("PlayerId: " + playerId +", Axis opinion: " + axis_opinion + ", col_code: " + col_code )
+            for(let j = 0; j < 4; j++) {
+                let col_number = axis_opinion[j] > 0 ? `0${axis_opinion[j]}` : axis_opinion[j];
+                console.log(`Appending to #column${col_code}${col_number}`)
+                $(`#column${col_code}${col_number}`).append(`<div class="opinion_cube Player${playerId}"></div>`);
             }
-            );
-            // Now apply the background color changes
-        $(".Player1").css({
-            "background-color": "red",
-            "box-shadow": "inset 0 0 2vw darkred"
-          });
-          $(".Player2").css({
-            "background-color": "blue",
-            "box-shadow": "inset 0 0 2vw darkblue"
-          });
-          $(".Player3").css({
-            "background-color": "green",
-            "box-shadow": "inset 0 0 2vw darkgreen"
-          });
-          $(".Player4").css({
-            "background-color": "yellow",
-            "box-shadow": "inset 0 0 2vw olive"
-          });
-          $(".Player5").css({
-            "background-color": "darkgrey",
-            "box-shadow": "inset 0 0 2vw dimgrey"
-          });
-          $(".Player6").css({
-            "background-color": "orange",
-            "box-shadow": "inset 0 0 2vw saddlebrown"
-          });
-          $(".Player7").css({
-            "background-color": "pink",
-            "box-shadow": "inset 0 0 2vw hotpink"
-          });
-          $(".Player0").css({
-            "background-color": "purple",
-            "box-shadow": "inset 0 0 2vw indigo"
-          });
-          
-
         }
+    })
 
-    }).fail(function(jqXHR, textStatus, errorThrown) {
-        console.error("Error fetching player opinions:", textStatus, errorThrown);
-    });
+    $(".Player1").css({
+        "background-color": "red",
+        "box-shadow": "inset 0 0 2vw darkred"
+      });
+      $(".Player2").css({
+        "background-color": "blue",
+        "box-shadow": "inset 0 0 2vw darkblue"
+      });
+      $(".Player3").css({
+        "background-color": "green",
+        "box-shadow": "inset 0 0 2vw darkgreen"
+      });
+      $(".Player4").css({
+        "background-color": "yellow",
+        "box-shadow": "inset 0 0 2vw olive"
+      });
+      $(".Player5").css({
+        "background-color": "darkgrey",
+        "box-shadow": "inset 0 0 2vw dimgrey"
+      });
+      $(".Player6").css({
+        "background-color": "orange",
+        "box-shadow": "inset 0 0 2vw saddlebrown"
+      });
+      $(".Player7").css({
+        "background-color": "pink",
+        "box-shadow": "inset 0 0 2vw hotpink"
+      });
+      $(".Player8").css({
+        "background-color": "purple",
+        "box-shadow": "inset 0 0 2vw indigo"
+      });
+
+      $(".opinion_cube").on('click', function() {
+        console.log(playerID)
+        if($(this).hasClass(`Player${playerID}`)){
+            this.style.backgroundColor = "black"
+        a = getRandomNonZero()
+        b = getRandomNonZero()
+        c = getRandomNonZero()
+        d = getRandomNonZero()
+          setOpinions([[a, a + 1, a, a - 1], [b, b + 1, b, b - 1], [c, c + 1, c, c - 1], [d, d + 1, d, d - 1]])
+        }
+          
+      })
+
+      switch (playerID) {
+        case 1:
+            $(".podpis").css({"background-color": "red"})
+            break
+        case 2:
+            $(".podpis").css({"background-color": "blue"})
+            break
+        case 3:
+            $(".podpis").css({"background-color": "green"})
+            break
+        case 4:
+            $(".podpis").css({"background-color": "yellow"})
+            break
+        case 5:
+            $(".podpis").css({"background-color": "darkgrey"})
+            break
+        case 6:
+            $(".podpis").css({"background-color": "orange"})
+            break
+        case 7:
+            $(".podpis").css({"background-color": "pink"})
+            break
+        case 8:
+            $(".podpis").css({"background-color": "purple"})
+            break
+    }
 }
-
-
-
-function pollServerForUpdates() {
-    drawPlayers()
-}
-
 
 function setUstawa(code) {
     socket.send(JSON.stringify({ action: "ustawa", ustawa: code }))
+}
+
+function getRandomNonZero() {
+    let num = 0;
+    while (num === 0) {
+        num = Math.floor(Math.random() * 7) - 3; // Generates numbers from -4 to 4
+    }
+    return num;
+}
+
+function setOpinions(opinions) {
+    console.log("Setting opinions: " + opinions)
+    socket.send(JSON.stringify({action: "opinions", PlayerID: playerID, opinions: opinions}))
 }
 
 function toggleButtonState(clickedId) {
@@ -358,11 +398,9 @@ function handleOrientationChange() { // Handle switch between marszalek and prez
         console.log("We are in landscape mode");
     }
 }
-
-
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
-    setInterval(pollServerForUpdates, 1500);
+    //drawPlayers();
 
     $('#za').on('click', function() {
         voteZa(playerID);
@@ -387,5 +425,6 @@ $(document).ready(function() {
             socket.send(JSON.stringify({ action: "leave", playerID: playerID }));
         }
     });
-    
+
 })
+

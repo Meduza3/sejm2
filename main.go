@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -15,7 +14,6 @@ import (
 type Player struct {
 	Id       int
 	Count    int
-	IP       string
 	Opinions [4][4]int
 	Vote     Vote
 }
@@ -34,13 +32,22 @@ type RequestBody struct {
 }
 
 type WSMessage struct {
-	Action   string `json:"action"`
-	PlayerID int    `json:"playerID,omitempty"`
-	Ustawa   string `json:"ustawa,omitempty"`
+	Action   string    `json:"action"`
+	PlayerID int       `json:"playerID,omitempty"`
+	Ustawa   string    `json:"ustawa,omitempty"`
+	Opinions [4][4]int `json:"opinions,omitempty"`
+}
+
+type PlayersMessage struct {
+	Players []Player `json:"players"`
+}
+
+type IdMessage struct {
+	Id int `json:"Id"`
 }
 
 var (
-	players          = make(map[string]Player)
+	players          = make(map[int]Player)
 	player_count int = 0
 	axes         [4]int
 )
@@ -102,8 +109,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		var msg WSMessage
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			fmt.Printf("error: %v", err)
+			fmt.Printf("error1: %v\n", err)
 			delete(clients, ws)
+			player_count--
 			break
 		}
 
@@ -119,9 +127,31 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		case "wstrzymaj":
 			handleWstrzymajVote(msg.PlayerID)
 		case "ustawa":
+			fmt.Println("Handling ustawa!")
 			handleUstawa(msg.Ustawa)
+		case "opinions":
+			fmt.Println("Handling opinions!")
+			handleOpinion(msg.PlayerID, msg.Opinions)
 		}
 	}
+}
+
+func handleOpinion(playerID int, opinions [4][4]int) {
+	player := players[playerID] // Extract the player struct from the map
+	player.Opinions = opinions  // Modify the field you want
+	players[playerID] = player  // Put the modified struct back into the map
+
+	// Convert your players map to a slice
+	playersSlice := make([]Player, 0, len(players))
+	for _, player := range players {
+		playersSlice = append(playersSlice, player)
+	}
+
+	// Create an instance of PlayersMessage and set the Players field
+	message := PlayersMessage{Players: playersSlice}
+
+	// Broadcast the message
+	broadcastToClients(message)
 }
 
 func handleUstawa(ustawa string) {
@@ -166,6 +196,17 @@ func handleUstawa(ustawa string) {
 
 func handleLeave(playerID int) {
 	fmt.Printf("Player %d LEFT\n", playerID)
+	delete(players, playerID)
+	playersSlice := make([]Player, 0, len(players))
+	for _, player := range players {
+		playersSlice = append(playersSlice, player)
+	}
+	message := PlayersMessage{Players: playersSlice}
+
+	// Broadcast the message
+	for socket := range clients {
+		socket.WriteJSON(message)
+	}
 }
 
 func handleZaVote(playerID int) {
@@ -185,7 +226,6 @@ func handleJoin(ws *websocket.Conn) {
 	defer mu.Unlock()
 
 	player_count++
-	ip := ws.RemoteAddr().String() // This may not be as useful with WebSockets, consider alternatives for unique identifiers
 	a := randInt()
 	b := randInt()
 	c := randInt()
@@ -193,7 +233,6 @@ func handleJoin(ws *websocket.Conn) {
 	player := Player{
 		Id:    len(players) + 1,
 		Count: 100,
-		IP:    ip,
 		Opinions: [4][4]int{
 			{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
 			{b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
@@ -201,12 +240,22 @@ func handleJoin(ws *websocket.Conn) {
 			{d, clampToFour(d + randMod()), clampToFour(d + randMod()), clampToFour(d + randMod())},
 		},
 	}
-	fmt.Printf("Player %d with IP %s joined\n", player.Id, player.IP)
-	players[ip] = player // You might want to use a different key for WebSocket clients
+	fmt.Printf("Player %d joined\n", player.Id)
+	players[player.Id] = player
 
-	// Send the player data back to the client
-	if err := ws.WriteJSON(player); err != nil {
-		fmt.Println("error sending join response:", err)
+	// Convert your players map to a slice
+	playersSlice := make([]Player, 0, len(players))
+	for _, player := range players {
+		playersSlice = append(playersSlice, player)
+	}
+
+	// Create an instance of PlayersMessage and set the Players field
+	message := PlayersMessage{Players: playersSlice}
+
+	// Broadcast the message
+	ws.WriteJSON(IdMessage{Id: player.Id})
+	for socket := range clients {
+		socket.WriteJSON(message)
 	}
 }
 
@@ -229,29 +278,6 @@ func main() {
 	http.HandleFunc("/ws", handleConnections)
 
 	fmt.Println("Server started!")
-
-	http.HandleFunc("/gracze", func(w http.ResponseWriter, r *http.Request) {
-		var allOpinions []map[string][4][4]int
-		mu.Lock()
-		defer mu.Unlock()
-
-		for _, player := range players {
-			allOpinions = append(allOpinions, map[string][4][4]int{fmt.Sprintf("Player%d", player.Id): player.Opinions})
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-
-		// Convert the slice of opinions to JSON
-		jsonResponse, err := json.Marshal(allOpinions)
-		if err != nil {
-			// Handle error
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Write the JSON response
-		w.Write(jsonResponse)
-	})
 
 	err := http.ListenAndServe("0.0.0.0:8080", nil)
 	if err != nil {
