@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -48,7 +49,7 @@ type IdMessage struct {
 }
 
 var (
-	niezrzeszeni int = 0
+	niezrzeszeni int = 4
 	players          = make(map[int]Player)
 	player_count int = 0
 	axes         [4]int
@@ -289,7 +290,7 @@ func handleJoin(ws *websocket.Conn) {
 	d := randInt()
 	player := Player{
 		Id:    len(players) + 1,
-		Count: 115,
+		Count: 57,
 		Opinions: [4][4]int{
 			{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
 			{b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
@@ -338,6 +339,10 @@ func calculateRound() {
 		// Appending each player to playersTemp slice
 	}
 
+	sort.Slice(playersTemp, func(i, j int) bool {
+		return playersTemp[i].Id < playersTemp[j].Id
+	})
+
 	sumaZa := 0
 	sumaPrzeciw := 0
 	sumaWstrzymal := 0
@@ -350,12 +355,21 @@ func calculateRound() {
 			sumaWstrzymal += player.Count
 		}
 	}
+	niezrzeszeniZa := rand.Intn(2)
+	var niezrzeszeniVote string
+	if niezrzeszeniZa == 0 { // Generates either 0 or 1 randomly
+		sumaPrzeciw += niezrzeszeni
+		niezrzeszeniVote = "PRZECIW"
+	} else {
+		sumaZa += niezrzeszeni
+		niezrzeszeniVote = "ZA"
+	}
 
 	fmt.Println("Here are the players:")
 	for _, tempPlayer := range playersTemp {
 		fmt.Println(tempPlayer)
 	}
-	fmt.Printf("Niezrzeszeni: %d\n", niezrzeszeni)
+	fmt.Printf("Niezrzeszeni: %d zaglosowalo %s\n ", niezrzeszeni, niezrzeszeniVote)
 
 	fmt.Println("Here is the legislation:")
 	fmt.Println(axes)
@@ -378,27 +392,27 @@ func calculateRound() {
 				}
 				if bloczki != 0 {
 					var odchodzacy = math.Ceil((bloczki / 100) * 0.2 * float64(gracz.Count)) // Mamy ilosc odchodzacych
-					fmt.Printf("Gracz %d, os %d: Wkurzylo sie %d bloczkow, co daje %d odchodzacych\n", gracz.Id, i, int(bloczki/25), int(odchodzacy))
+					fmt.Printf("Gracz %d, os %s: Wkurzylo sie %d bloczkow, co daje %d odchodzacych\n", gracz.Id, numToAxis(i), int(bloczki/25), int(odchodzacy))
 					naTejOsiWystajeNaPrawo := wystawalbyNaPrawo(gracz.Opinions[i][:], axes[i])
 					if naTejOsiWystajeNaPrawo {
-						fmt.Printf("Gracz %d, os %d wystaje na prawo\n", gracz.Id, i)
+						fmt.Printf("Gracz %d, os %s wystaje na prawo\n", gracz.Id, numToAxis(i))
 					} else {
-						fmt.Printf("Gracz %d, os %d wystaje na lewo\n", gracz.Id, i)
+						fmt.Printf("Gracz %d, os %s wystaje na lewo\n", gracz.Id, numToAxis(i))
 					}
 					minDistance := 100
 					var najblizszaPartia *Player
 
 					najbardziejNaPrawo := max(gracz.Opinions[i][:])
-					fmt.Printf("Gracz %d, os %d: Najbardziej na prawo wysuniety klocek jest na %d\n", gracz.Id, i, najbardziejNaPrawo)
+					fmt.Printf("Gracz %d, os %s: Najbardziej na prawo wysuniety klocek jest na %d\n", gracz.Id, numToAxis(i), najbardziejNaPrawo)
 
 					najbardziejNaLewo := min(gracz.Opinions[i][:])
-					fmt.Printf("Gracz %d, os %d: Najbardziej na lewo wysuniety klocek jest na %d\n", gracz.Id, i, najbardziejNaLewo)
+					fmt.Printf("Gracz %d, os %s: Najbardziej na lewo wysuniety klocek jest na %d\n", gracz.Id, numToAxis(i), najbardziejNaLewo)
 					for _, drugiGracz := range playersTemp {
 						if drugiGracz.Vote != gracz.Vote {
 							if gracz.Vote == FOR && naTejOsiWystajeNaPrawo {
 								//closest party to the right
 								najblizszaOpiniaDrugiegoGracza := minGreaterThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaPrawo)
-								fmt.Printf("Gracz %d, os %d, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, i, drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != 420 {
 									distance := abs(najbardziejNaPrawo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != FOR && distance < minDistance {
@@ -410,7 +424,7 @@ func calculateRound() {
 							} else if gracz.Vote == FOR && !naTejOsiWystajeNaPrawo {
 								//Closest party to the left
 								najblizszaOpiniaDrugiegoGracza := maxSmallerThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaLewo)
-								fmt.Printf("Gracz %d, os %d, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, i, drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != -420 {
 									distance := abs(najbardziejNaLewo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != FOR && distance < minDistance {
@@ -422,7 +436,7 @@ func calculateRound() {
 							} else if gracz.Vote == AGAINST && naTejOsiWystajeNaPrawo {
 								//Closest party to the left
 								najblizszaOpiniaDrugiegoGracza := maxSmallerThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaLewo)
-								fmt.Printf("Gracz %d, os %d, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, i, drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != -420 {
 									distance := abs(najbardziejNaLewo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != AGAINST && distance < minDistance {
@@ -434,7 +448,7 @@ func calculateRound() {
 							} else if gracz.Vote == AGAINST && !naTejOsiWystajeNaPrawo {
 								//Closest party to the right
 								najblizszaOpiniaDrugiegoGracza := minGreaterThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaPrawo)
-								fmt.Printf("Gracz %d, os %d, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, i, drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != 420 {
 									distance := abs(najbardziejNaPrawo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != AGAINST && distance < minDistance {
@@ -444,13 +458,13 @@ func calculateRound() {
 								}
 							}
 						} else {
-							fmt.Printf("Gracz %d, os %d: drugi gracz %d zaglosowal tak samo, pomijamy\n", gracz.Id, i, drugiGracz.Id)
+							fmt.Printf("Gracz %d, os %s: drugi gracz %d zaglosowal tak samo, pomijamy\n", gracz.Id, numToAxis(i), drugiGracz.Id)
 						}
 					}
 					if najblizszaPartia != nil {
-						fmt.Printf("Gracz %d, os %d: Poslowie przejda do partii gracza %d\n", gracz.Id, i, najblizszaPartia.Id)
+						fmt.Printf("Gracz %d, os %s: Poslowie przejda do partii gracza %d\n", gracz.Id, numToAxis(i), najblizszaPartia.Id)
 					} else {
-						fmt.Printf("Gracz %d, os %d: Poslowie przejda do niezrzeszonych\n", gracz.Id, i)
+						fmt.Printf("Gracz %d, os %s: Poslowie przejda do niezrzeszonych\n", gracz.Id, numToAxis(i))
 					}
 					player, exists := players[gracz.Id]
 					if exists {
@@ -467,11 +481,14 @@ func calculateRound() {
 						niezrzeszeni += int(odchodzacy)
 					}
 				} else {
-					fmt.Printf("Gracz %d, os %d: Nikogo nie wkurzyl, pomijamy\n", gracz.Id, i)
+					fmt.Printf("Gracz %d, os %s: Nikogo nie wkurzyl, pomijamy\n", gracz.Id, numToAxis(i))
 				}
 
+			} else {
+				fmt.Printf("os %s nie dotyczy tej ustawy, pomijamy\n", numToAxis(i))
 			}
 		}
+		resetVotes()
 	}
 
 	fmt.Println("Here are the results:")
@@ -546,6 +563,33 @@ func maxSmallerThanThreshold(nums []int, threshold int) int {
 		}
 	}
 	return maxValue
+}
+
+func numToAxis(num int) string {
+	switch num {
+	case 0:
+		return "A"
+	case 1:
+		return "B"
+	case 2:
+		return "C"
+	case 3:
+		return "D"
+	}
+	return "ugabuga"
+}
+
+func resetVotes() {
+	for id := range players {
+		player := players[id]
+		player.Vote = NULL
+		players[id] = player
+	}
+
+	message := WSMessage{Action: "resetVotes"}
+	for socket := range clients {
+		socket.WriteJSON(message)
+	}
 }
 
 func isInLegislationArea(opinion int, legislation int) bool {

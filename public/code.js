@@ -28,7 +28,11 @@ socket.onmessage = function(event) {
             }
         })
         drawPlayersNew(data.players);
+    } else if (data.action == "resetVotes") {
+        console.log("Resetting the vote");
+        toggleButtonState(null, true); // Force reset without toggling any specific button
     }
+    
 }
 
 socket.onclose = function(event) {
@@ -424,16 +428,19 @@ function prepareOpinions() {
 }
 
 
-function toggleButtonState(clickedId) {
-    if ($('#' + clickedId).hasClass('active')) {
-        // If the clicked button was already active, remove the dimming from all buttons
-        $('.vote_button').removeClass('dimmed active');
+function toggleButtonState(clickedId, forceReset = false) {
+    if (forceReset) {
+        $('.vote_button').removeClass('dimmed active'); // Reset all buttons
     } else {
-        // Dim all buttons and mark the clicked one as active
-        $('.vote_button').addClass('dimmed').removeClass('active');
-        $('#' + clickedId).removeClass('dimmed').addClass('active');
+        if ($('#' + clickedId).hasClass('active')) {
+            $('.vote_button').removeClass('dimmed active');
+        } else {
+            $('.vote_button').addClass('dimmed').removeClass('active');
+            $('#' + clickedId).removeClass('dimmed').addClass('active');
+        }
     }
 }
+
 
 
 // Handlers, Interactables
