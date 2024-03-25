@@ -293,6 +293,9 @@ function drawPlayersNew(players) {
     $(".opinion_cube").remove();
     console.log(players)
     players.forEach((player) => {
+        if(player.Id == playerID) {
+            opinions = player.Opinions
+        }
         player_opinions = player.Opinions
         playerId = player.Id
         console.log("Opinions: " + player.Opinions)
@@ -344,8 +347,9 @@ function drawPlayersNew(players) {
 
       $(".opinion_cube").on('click', function() {
         event.stopPropagation()
-        cube = this
-        $(`.klocki_column.${$(this).parent().parent().className}`).css({"box-shadow":"inset 0px 0px 0px 1vw black"})
+        if(cube == null){
+            cube = this
+        }
       })
 
       switch (playerID) {
@@ -396,43 +400,38 @@ function getRandomNonZero() {
     return num;
 }
 
+var modifiedOpinionColumnIndex = 0
+var modifiedOpinionCubeIndex = 0
+
 function setOpinions(opinions) {
     console.log("Setting opinions: " + opinions)
     socket.send(JSON.stringify({action: "opinions", PlayerID: playerID, opinions: opinions}))
 }
 
-function prepareOpinions() {
+
+function modifyOpinion() {
     var cubeClass = `Player${playerID}`;
     var cubes = $(`.${cubeClass}.opinion_cube`);
     var columnsInfo = {};
-
-    let finalArray = Array(4).fill().map(() => Array(4).fill(0));
-
-    cubes.each(function() {
-        var parentID = $(this).parent().attr('id').slice(-3);
-        if (!columnsInfo[parentID]) {
-            columnsInfo[parentID] = [];
-        }
-        columnsInfo[parentID].push(this);
-    });
-
-    // Teraz 'columnsInfo' zawiera informacje o wszystkich rodzicach i ich "cubach"
-    console.log(columnsInfo);
-    Object.entries(columnsInfo).forEach(([key, value]) => {
-        console.log(key + " | " + value.length);
-        let rowIndex = key.charCodeAt(0) - 'A'.charCodeAt(0);
-        let columnIndex = parseInt(key.slice(1)) - 1;
-        finalArray[rowIndex][columnIndex] = value.length;
-    });
-
-    for (let i = 0; i < finalArray.length; i++) {
-        for (let j = 0; j < finalArray[i].length; j++) {
-            let count = finalArray[i][j];
-            finalArray[i][j] = new Array(count).fill(i + 1).length; // This line is just an example and might need adjustments
-        }
+    switch($(cube).parent().id().slice(-3)[0]){
+        case "A":
+            modifiedOpinionColumnIndex = 0
+            break
+        case "B":
+            modifiedOpinionColumnIndex = 1
+            break
+        case "C":
+            modifiedOpinionColumnIndex = 2
+            break
+        case "D":
+            modifiedOpinionColumnIndex = 3
+            break
+        default:
+            console.error("ugabuga")
     }
+    
 
-    console.log(finalArray);
+
 }
 
 
@@ -462,7 +461,6 @@ function handleOrientationChange() { // Handle switch between marszalek and prez
 }
 
 let cube = null
-
 function selectAsDestinationForBlock(column){
     console.log("clicking column")
     if(cube){
@@ -493,7 +491,6 @@ $(document).ready(function() {
     });
 
     $('.axis_block').on('click', function() {
-        prepareOpinions();
         let elementId = $(this).attr('id')
         setUstawa(elementId.slice(-3))
     })
