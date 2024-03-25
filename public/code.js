@@ -6,7 +6,7 @@ let opinions = [[0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0]]
-var socket = new WebSocket('ws://localhost:8080/ws')
+var socket = new WebSocket('ws://192.168.0.111:8080/ws')
 
 socket.onopen = function(e) {
     console.log("Connection established");
@@ -45,7 +45,7 @@ socket.onerror = function(error) {
 
 //!!! Definitions
 
-function voteZa(playerID) {
+function voteZa() {
     const message = {
         action: "za",
         playerID: playerID
@@ -54,7 +54,7 @@ function voteZa(playerID) {
     socket.send(JSON.stringify(message));
 }
 
-function votePrzeciw(playerID) {
+function votePrzeciw() {
     const message = {
         action: "przeciw",
         playerID: playerID
@@ -63,7 +63,7 @@ function votePrzeciw(playerID) {
     socket.send(JSON.stringify(message));
 }
 
-function voteWstrzymaj(playerID) {
+function voteWstrzymaj() {
     const message = {
         action: "wstrzymaj",
         playerID: playerID
@@ -72,202 +72,211 @@ function voteWstrzymaj(playerID) {
     socket.send(JSON.stringify(message));
 }
 
+function setOpinion(A, B, C, D) {
+
+    const message = {
+        action: "opinions",
+        playerID: playerID,
+        opinions: [A, B, C, D]
+    }
+    socket.send(JSON.stringify(message));
+}
+
 function updateAxes(axes){
     $(".axis_block").css('background-color', 'white');
     if(axes[0] != 0){
         switch (axes[0]) {
             case -4:
-                $("#axisA-4").css('background-color', '#de3b2c');
-                $("#axisA-4").css('background-color', '#de3b2c');
-                $("#axisA-3").css('background-color', '#e77167');
+                $("#axisA-4").css('background-color', '#32a852');
+                $("#axisA-3").css('background-color', '#69c983');
                 break
             
             case -3:
-                $("#axisA-4").css('background-color', '#e77167');
-                $("#axisA-3").css('background-color', '#de3b2c');
-                $("#axisA-2").css('background-color', '#e77167');
+                $("#axisA-4").css('background-color', '#69c983');
+                $("#axisA-3").css('background-color', '#32a852');
+                $("#axisA-2").css('background-color', '#69c983');
                 break
 
             case -2:
-                $("#axisA-3").css('background-color', '#e77167');
-                $("#axisA-2").css('background-color', '#de3b2c');
-                $("#axisA-1").css('background-color', '#e77167');
+                $("#axisA-3").css('background-color', '#69c983');
+                $("#axisA-2").css('background-color', '#32a852');
+                $("#axisA-1").css('background-color', '#69c983');
                 break
             
             case -1:
-                $("#axisA-2").css('background-color', '#e77167');
-                $("#axisA-1").css('background-color', '#de3b2c');
-                $("#axisA01").css('background-color', '#e77167');
+                $("#axisA-2").css('background-color', '#69c983');
+                $("#axisA-1").css('background-color', '#32a852');
+                $("#axisA01").css('background-color', '#69c983');
                 break
 
             case 1:
-                $("#axisA-1").css('background-color', '#e77167');
-                $("#axisA01").css('background-color', '#de3b2c');
-                $("#axisA02").css('background-color', '#e77167');
+                $("#axisA-1").css('background-color', '#69c983');
+                $("#axisA01").css('background-color', '#32a852');
+                $("#axisA02").css('background-color', '#69c983');
                 break
 
             case 2:
-                $("#axisA01").css('background-color', '#e77167');
-                $("#axisA02").css('background-color', '#de3b2c');
-                $("#axisA03").css('background-color', '#e77167');
+                $("#axisA01").css('background-color', '#69c983');
+                $("#axisA02").css('background-color', '#32a852');
+                $("#axisA03").css('background-color', '#69c983');
                 break
 
             case 3:
-                $("#axisA02").css('background-color', '#e77167');
-                $("#axisA03").css('background-color', '#de3b2c');
-                $("#axisA04").css('background-color', '#e77167');
+                $("#axisA02").css('background-color', '#69c983');
+                $("#axisA03").css('background-color', '#32a852');
+                $("#axisA04").css('background-color', '#69c983');
                 break
 
             case 4:
-                $("#axisA03").css('background-color', '#e77167');
-                $("#axisA04").css('background-color', '#de3b2c');
+                $("#axisA03").css('background-color', '#69c983');
+                $("#axisA04").css('background-color', '#32a852');
                 break
         }
     }
     if(axes[1] != 0){
         switch (axes[1]) {
             case -4:
-                $("#axisB-4").css('background-color', '#de3b2c');
-                $("#axisB-3").css('background-color', '#e77167');
+                $("#axisB-4").css('background-color', '#32a852');
+                $("#axisB-3").css('background-color', '#69c983');
                 break
             
             case -3:
-                $("#axisB-4").css('background-color', '#e77167');
-                $("#axisB-3").css('background-color', '#de3b2c');
-                $("#axisB-2").css('background-color', '#e77167');
+                $("#axisB-4").css('background-color', '#69c983');
+                $("#axisB-3").css('background-color', '#32a852');
+                $("#axisB-2").css('background-color', '#69c983');
                 break
 
             case -2:
-                $("#axisB-3").css('background-color', '#e77167');
-                $("#axisB-2").css('background-color', '#de3b2c');
-                $("#axisB-1").css('background-color', '#e77167');
+                $("#axisB-3").css('background-color', '#69c983');
+                $("#axisB-2").css('background-color', '#32a852');
+                $("#axisB-1").css('background-color', '#69c983');
                 break
             
             case -1:
-                $("#axisB-2").css('background-color', '#e77167');
-                $("#axisB-1").css('background-color', '#de3b2c');
-                $("#axisB01").css('background-color', '#e77167');
+                $("#axisB-2").css('background-color', '#69c983');
+                $("#axisB-1").css('background-color', '#32a852');
+                $("#axisB01").css('background-color', '#69c983');
                 break
 
             case 1:
-                $("#axisB-1").css('background-color', '#e77167');
-                $("#axisB01").css('background-color', '#de3b2c');
-                $("#axisB02").css('background-color', '#e77167');
+                $("#axisB-1").css('background-color', '#69c983');
+                $("#axisB01").css('background-color', '#32a852');
+                $("#axisB02").css('background-color', '#69c983');
                 break
 
             case 2:
-                $("#axisB01").css('background-color', '#e77167');
-                $("#axisB02").css('background-color', '#de3b2c');
-                $("#axisB03").css('background-color', '#e77167');
+                $("#axisB01").css('background-color', '#69c983');
+                $("#axisB02").css('background-color', '#32a852');
+                $("#axisB03").css('background-color', '#69c983');
                 break
 
             case 3:
-                $("#axisB02").css('background-color', '#e77167');
-                $("#axisB03").css('background-color', '#de3b2c');
-                $("#axisB04").css('background-color', '#e77167');
+                $("#axisB02").css('background-color', '#69c983');
+                $("#axisB03").css('background-color', '#32a852');
+                $("#axisB04").css('background-color', '#69c983');
                 break
 
             case 4:
-                $("#axisB03").css('background-color', '#e77167');
-                $("#axisB04").css('background-color', '#de3b2c');
+                $("#axisB03").css('background-color', '#69c983');
+                $("#axisB04").css('background-color', '#32a852');
                 break
         }
     }
     if(axes[2] != 0){
         switch (axes[2]) {
             case -4:
-                $("#axisC-4").css('background-color', '#de3b2c');
-                $("#axisC-3").css('background-color', '#e77167');
+                $("#axisC-4").css('background-color', '#32a852');
+                $("#axisC-3").css('background-color', '#69c983');
                 break
             
             case -3:
-                $("#axisC-4").css('background-color', '#e77167');
-                $("#axisC-3").css('background-color', '#de3b2c');
-                $("#axisC-2").css('background-color', '#e77167');
+                $("#axisC-4").css('background-color', '#69c983');
+                $("#axisC-3").css('background-color', '#32a852');
+                $("#axisC-2").css('background-color', '#69c983');
                 break
 
             case -2:
-                $("#axisC-3").css('background-color', '#e77167');
-                $("#axisC-2").css('background-color', '#de3b2c');
-                $("#axisC-1").css('background-color', '#e77167');
+                $("#axisC-3").css('background-color', '#69c983');
+                $("#axisC-2").css('background-color', '#32a852');
+                $("#axisC-1").css('background-color', '#69c983');
                 break
             
             case -1:
-                $("#axisC-2").css('background-color', '#e77167');
-                $("#axisC-1").css('background-color', '#de3b2c');
-                $("#axisC01").css('background-color', '#e77167');
+                $("#axisC-2").css('background-color', '#69c983');
+                $("#axisC-1").css('background-color', '#32a852');
+                $("#axisC01").css('background-color', '#69c983');
                 break
 
             case 1:
-                $("#axisC-1").css('background-color', '#e77167');
-                $("#axisC01").css('background-color', '#de3b2c');
-                $("#axisC02").css('background-color', '#e77167');
+                $("#axisC-1").css('background-color', '#69c983');
+                $("#axisC01").css('background-color', '#32a852');
+                $("#axisC02").css('background-color', '#69c983');
                 break
 
             case 2:
-                $("#axisC01").css('background-color', '#e77167');
-                $("#axisC02").css('background-color', '#de3b2c');
-                $("#axisC03").css('background-color', '#e77167');
+                $("#axisC01").css('background-color', '#69c983');
+                $("#axisC02").css('background-color', '#32a852');
+                $("#axisC03").css('background-color', '#69c983');
                 break
 
             case 3:
-                $("#axisC02").css('background-color', '#e77167');
-                $("#axisC03").css('background-color', '#de3b2c');
-                $("#axisC04").css('background-color', '#e77167');
+                $("#axisC02").css('background-color', '#69c983');
+                $("#axisC03").css('background-color', '#32a852');
+                $("#axisC04").css('background-color', '#69c983');
                 break
 
             case 4:
-                $("#axisC03").css('background-color', '#e77167');
-                $("#axisC04").css('background-color', '#de3b2c');
+                $("#axisC03").css('background-color', '#69c983');
+                $("#axisC04").css('background-color', '#32a852');
                 break
         }
     }
     if(axes[3] != 0){
         switch (axes[3]) {
             case -4:
-                $("#axisD-4").css('background-color', '#de3b2c');
-                $("#axisD-3").css('background-color', '#e77167');
+                $("#axisD-4").css('background-color', '#32a852');
+                $("#axisD-3").css('background-color', '#69c983');
                 break
             
             case -3:
-                $("#axisD-4").css('background-color', '#e77167');
-                $("#axisD-3").css('background-color', '#de3b2c');
-                $("#axisD-2").css('background-color', '#e77167');
+                $("#axisD-4").css('background-color', '#69c983');
+                $("#axisD-3").css('background-color', '#32a852');
+                $("#axisD-2").css('background-color', '#69c983');
                 break
 
             case -2:
-                $("#axisD-3").css('background-color', '#e77167');
-                $("#axisD-2").css('background-color', '#de3b2c');
-                $("#axisD-1").css('background-color', '#e77167');
+                $("#axisD-3").css('background-color', '#69c983');
+                $("#axisD-2").css('background-color', '#32a852');
+                $("#axisD-1").css('background-color', '#69c983');
                 break
             
             case -1:
-                $("#axisD-2").css('background-color', '#e77167');
-                $("#axisD-1").css('background-color', '#de3b2c');
-                $("#axisD01").css('background-color', '#e77167');
+                $("#axisD-2").css('background-color', '#69c983');
+                $("#axisD-1").css('background-color', '#32a852');
+                $("#axisD01").css('background-color', '#69c983');
                 break
 
             case 1:
-                $("#axisD-1").css('background-color', '#e77167');
-                $("#axisD01").css('background-color', '#de3b2c');
-                $("#axisD02").css('background-color', '#e77167');
+                $("#axisD-1").css('background-color', '#69c983');
+                $("#axisD01").css('background-color', '#32a852');
+                $("#axisD02").css('background-color', '#69c983');
                 break
 
             case 2:
-                $("#axisD01").css('background-color', '#e77167');
-                $("#axisD02").css('background-color', '#de3b2c');
-                $("#axisD03").css('background-color', '#e77167');
+                $("#axisD01").css('background-color', '#69c983');
+                $("#axisD02").css('background-color', '#32a852');
+                $("#axisD03").css('background-color', '#69c983');
                 break
 
             case 3:
-                $("#axisD02").css('background-color', '#e77167');
-                $("#axisD03").css('background-color', '#de3b2c');
-                $("#axisD04").css('background-color', '#e77167');
+                $("#axisD02").css('background-color', '#69c983');
+                $("#axisD03").css('background-color', '#32a852');
+                $("#axisD04").css('background-color', '#69c983');
                 break
 
             case 4:
-                $("#axisD03").css('background-color', '#e77167');
-                $("#axisD04").css('background-color', '#de3b2c');
+                $("#axisD03").css('background-color', '#69c983');
+                $("#axisD04").css('background-color', '#32a852');
                 break
         }
     }
@@ -332,7 +341,7 @@ function drawPlayersNew(players) {
       $(".opinion_cube").on('click', function() {
         event.stopPropagation()
         cube = this
-        $(".klocki_column").css({"border":"10px solid black"})
+        $(`.klocki_column.${$(this).parent().parent().className}`).css({"box-shadow":"inset 0px 0px 0px 1vw black"})
       })
 
       switch (playerID) {
@@ -379,6 +388,41 @@ function setOpinions(opinions) {
     console.log("Setting opinions: " + opinions)
     socket.send(JSON.stringify({action: "opinions", PlayerID: playerID, opinions: opinions}))
 }
+
+function prepareOpinions() {
+    var cubeClass = `Player${playerID}`;
+    var cubes = $(`.${cubeClass}.opinion_cube`);
+    var columnsInfo = {};
+
+    let finalArray = Array(4).fill().map(() => Array(4).fill(0));
+
+    cubes.each(function() {
+        var parentID = $(this).parent().attr('id').slice(-3);
+        if (!columnsInfo[parentID]) {
+            columnsInfo[parentID] = [];
+        }
+        columnsInfo[parentID].push(this);
+    });
+
+    // Teraz 'columnsInfo' zawiera informacje o wszystkich rodzicach i ich "cubach"
+    console.log(columnsInfo);
+    Object.entries(columnsInfo).forEach(([key, value]) => {
+        console.log(key + " | " + value.length);
+        let rowIndex = key.charCodeAt(0) - 'A'.charCodeAt(0);
+        let columnIndex = parseInt(key.slice(1)) - 1;
+        finalArray[rowIndex][columnIndex] = value.length;
+    });
+
+    for (let i = 0; i < finalArray.length; i++) {
+        for (let j = 0; j < finalArray[i].length; j++) {
+            let count = finalArray[i][j];
+            finalArray[i][j] = new Array(count).fill(i + 1).length; // This line is just an example and might need adjustments
+        }
+    }
+
+    console.log(finalArray);
+}
+
 
 function toggleButtonState(clickedId) {
     if ($('#' + clickedId).hasClass('active')) {
@@ -434,6 +478,7 @@ $(document).ready(function() {
     });
 
     $('.axis_block').on('click', function() {
+        prepareOpinions();
         let elementId = $(this).attr('id')
         setUstawa(elementId.slice(-3))
     })
