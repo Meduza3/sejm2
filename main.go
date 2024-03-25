@@ -213,46 +213,58 @@ func handleLeave(playerID int) {
 }
 
 func handleZaVote(playerID int) {
-	fmt.Printf("Player %d voted ZA\n", playerID)
-
 	player, exists := players[playerID]
 	if !exists {
 		fmt.Println("Player does not exist")
 		return
 	}
-
-	player.Vote = FOR
-	players[playerID] = player
+	if player.Vote != FOR {
+		fmt.Printf("Player %d voted ZA\n", playerID)
+		player.Vote = FOR
+		players[playerID] = player
+	} else {
+		fmt.Printf("Player %d cancelled their vote.\n", playerID)
+		player.Vote = NULL
+		players[playerID] = player
+	}
 
 	checkForEndOfRound()
 }
 
 func handlePrzeciwVote(playerID int) {
-	fmt.Printf("Player %d voted PRZECIW\n", playerID)
-
 	player, exists := players[playerID]
 	if !exists {
 		fmt.Println("Player does not exist")
 		return
 	}
-
-	player.Vote = AGAINST
-	players[playerID] = player // Put the modified player struct back into the map
+	if player.Vote != AGAINST {
+		fmt.Printf("Player %d voted PRZECIW\n", playerID)
+		player.Vote = AGAINST
+		players[playerID] = player
+	} else {
+		fmt.Printf("Player %d cancelled their vote.\n", playerID)
+		player.Vote = NULL
+		players[playerID] = player
+	}
 
 	checkForEndOfRound()
 }
 
 func handleWstrzymajVote(playerID int) {
-	fmt.Printf("Player %d voted WSTRZYMAJ\n", playerID)
-
 	player, exists := players[playerID]
 	if !exists {
 		fmt.Println("Player does not exist")
 		return
 	}
-
-	player.Vote = ABSTAIN
-	players[playerID] = player // Put the modified player struct back into the map
+	if player.Vote != ABSTAIN {
+		fmt.Printf("Player %d voted WSTRZYMAJ\n", playerID)
+		player.Vote = ABSTAIN
+		players[playerID] = player
+	} else {
+		fmt.Printf("Player %d cancelled their vote.\n", playerID)
+		player.Vote = NULL
+		players[playerID] = player
+	}
 
 	checkForEndOfRound()
 }
@@ -395,9 +407,9 @@ func calculateRound() {
 					fmt.Printf("Gracz %d, os %s: Wkurzylo sie %d bloczkow, co daje %d odchodzacych\n", gracz.Id, numToAxis(i), int(bloczki/25), int(odchodzacy))
 					naTejOsiWystajeNaPrawo := wystawalbyNaPrawo(gracz.Opinions[i][:], axes[i])
 					if naTejOsiWystajeNaPrawo {
-						fmt.Printf("Gracz %d, os %s wystaje na prawo\n", gracz.Id, numToAxis(i))
+						fmt.Printf("Gracz %d, os %s: wystaje na prawo\n", gracz.Id, numToAxis(i))
 					} else {
-						fmt.Printf("Gracz %d, os %s wystaje na lewo\n", gracz.Id, numToAxis(i))
+						fmt.Printf("Gracz %d, os %s: wystaje na lewo\n", gracz.Id, numToAxis(i))
 					}
 					minDistance := 100
 					var najblizszaPartia *Player
@@ -485,7 +497,7 @@ func calculateRound() {
 				}
 
 			} else {
-				fmt.Printf("os %s nie dotyczy tej ustawy, pomijamy\n", numToAxis(i))
+				fmt.Printf("Gracz %d, os %s: nie dotyczy tej ustawy, pomijamy\n", gracz.Id, numToAxis(i))
 			}
 		}
 		resetVotes()

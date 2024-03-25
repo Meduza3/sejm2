@@ -6,7 +6,7 @@ let opinions = [[0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0]]
-var socket = new WebSocket('ws://192.168.0.111:8080/ws')
+var socket = new WebSocket('ws://172.20.10.4:8080/ws')
 
 socket.onopen = function(e) {
     console.log("Connection established");
@@ -351,27 +351,35 @@ function drawPlayersNew(players) {
       switch (playerID) {
         case 1:
             $(".podpis").css({"background-color": "red"})
+            $(".voting").css({"background-color": "red"})
             break
         case 2:
             $(".podpis").css({"background-color": "blue"})
+            $(".voting").css({"background-color": "blue"})
             break
         case 3:
             $(".podpis").css({"background-color": "green"})
+            $(".voting").css({"background-color": "green"})
             break
         case 4:
             $(".podpis").css({"background-color": "yellow"})
+            $(".voting").css({"background-color": "yellow"})
             break
         case 5:
             $(".podpis").css({"background-color": "darkgrey"})
+            $(".voting").css({"background-color": "darkgrey"})
             break
         case 6:
             $(".podpis").css({"background-color": "orange"})
+            $(".voting").css({"background-color": "orange"})
             break
         case 7:
             $(".podpis").css({"background-color": "pink"})
+            $(".voting").css({"background-color": "pink"})
             break
         case 8:
             $(".podpis").css({"background-color": "purple"})
+            $(".voting").css({"background-color": "purple"})
             break
     }
 }
