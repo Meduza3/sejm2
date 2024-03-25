@@ -31,6 +31,31 @@ socket.onmessage = function(event) {
     } else if (data.action == "resetVotes") {
         console.log("Resetting the vote");
         toggleButtonState(null, true); // Force reset without toggling any specific button
+    } else if (data.action == "results") {
+
+        var sumaZa = data.sumaZa ? data.sumaZa : 0
+        var sumaPrzeciw = data.sumaPrzeciw ? data.sumaPrzeciw : 0
+        var sumaWstrzymal = data.sumaWstrzymal ? data.sumaWstrzymal : 0
+        var suma = sumaZa + sumaPrzeciw + sumaWstrzymal
+        
+        console.log("Got results!")
+        $("#body").removeClass("show-prezes")
+        $("#body").addClass("show-results")
+        $("#numer_glosowania").html(`GLOSOWANIE NR ${data.numer}`)
+        $("#voted").html(suma)
+        $("#for").html(sumaZa)
+        $("#against").html(sumaPrzeciw)
+        $("#abstained").html(sumaWstrzymal)
+        console.log(data.changes)
+        var change = data.changes[playerID]
+        var changeText
+        if (change > 0) {
+            changeText = "+" + change
+        } else {
+            changeText = change
+        }
+        console.log(change)
+        $("#seats").html(changeText)
     }
     
 }
@@ -485,7 +510,7 @@ function selectAsDestinationForBlock(column){
 }
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
-    //drawPlayers();
+
 
     $('#za').on('click', function() {
         voteZa(playerID);
@@ -507,6 +532,11 @@ $(document).ready(function() {
 
     $(('.klocki_column')).on('click', function() {
         selectAsDestinationForBlock(this)
+    })
+
+    $("#results_layout").on('click', function() {
+        $("#body").removeClass("show-results")
+        $("#body").addClass("show-prezes")
     })
 
     $(window).on('pagehide', function() {

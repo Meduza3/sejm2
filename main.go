@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math"
 	"math/rand"
@@ -34,10 +35,15 @@ type RequestBody struct {
 }
 
 type WSMessage struct {
-	Action   string    `json:"action"`
-	PlayerID int       `json:"playerID,omitempty"`
-	Ustawa   string    `json:"ustawa,omitempty"`
-	Opinions [4][4]int `json:"opinions,omitempty"`
+	Action          string         `json:"action"`
+	PlayerID        int            `json:"playerID,omitempty"`
+	Ustawa          string         `json:"ustawa,omitempty"`
+	Opinions        [4][4]int      `json:"opinions,omitempty"`
+	SumaZa          int            `json:"sumaZa,omitempty"`
+	SumaPrzeciw     int            `json:"sumaPrzeciw,omitempty"`
+	SumaWstrzymal   int            `json:"sumaWstrzymal,omitempty"`
+	NumerGlosowania int            `json:"numer",omitempty`
+	Changes         map[string]int `json:"changes,omitempty"`
 }
 
 type PlayersMessage struct {
@@ -49,10 +55,12 @@ type IdMessage struct {
 }
 
 var (
-	niezrzeszeni int = 4
-	players          = make(map[int]Player)
-	player_count int = 0
-	axes         [4]int
+	niezrzeszeni    int = 4
+	players             = make(map[int]Player)
+	player_count    int = 0
+	axes            [4]int
+	numerGlosowania int = 1
+	numberOfPlayers int = 8
 )
 
 func randInt() int {
@@ -300,9 +308,10 @@ func handleJoin(ws *websocket.Conn) {
 	b := randInt()
 	c := randInt()
 	d := randInt()
+	count := math.Floor(float64(460 / numberOfPlayers))
 	player := Player{
 		Id:    len(players) + 1,
-		Count: 57,
+		Count: int(count),
 		Opinions: [4][4]int{
 			{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
 			{b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
@@ -511,12 +520,17 @@ func calculateRound() {
 	} else {
 		fmt.Printf("Ustawa ODRZUCONA\n")
 	}
+	changes := make(map[string]int)
 	for _, originalPlayer := range playersTemp {
 		player := players[originalPlayer.Id]
-		fmt.Printf("Gracz %d ma teraz %d poslow. Zmiana: %d\n", player.Id, player.Count, player.Count-originalPlayer.Count)
+		changeCount := player.Count - originalPlayer.Count
+		fmt.Printf("Gracz %d ma teraz %d poslow. Zmiana: %d\n", player.Id, player.Count, changeCount)
+		changes[strconv.Itoa(player.Id)] = changeCount
 	}
 	fmt.Printf("Niezrzeszeni: %d\n", niezrzeszeni)
-
+	var message = WSMessage{Action: "results", SumaZa: sumaZa, SumaPrzeciw: sumaPrzeciw, SumaWstrzymal: sumaWstrzymal, NumerGlosowania: numerGlosowania, Changes: changes}
+	broadcastToClients(message)
+	numerGlosowania++
 }
 
 func wystawalbyNaPrawo(opinion []int, legislation int) bool {
@@ -624,6 +638,14 @@ func isInLegislationArea(opinion int, legislation int) bool {
 
 func main() {
 
+	playersStr := flag.String("players", "8", "The number of players")
+
+	// Parse the command-line flags
+	flag.Parse()
+
+	// Convert the number of players from string to int
+	numberOfPlayers, _ = strconv.Atoi(*playersStr)
+	niezrzeszeni = 460 % numberOfPlayers
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/ws", handleConnections)
 

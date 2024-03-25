@@ -5,7 +5,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="code.js"></script>
   </head>
-  <body>
+  <body id="body" class="show-prezes">
     <div id="marszalek_layout" class="layout">
       <div class="klocki_space">
         <div class="klocki_column A" id="columnA-4"></div>
@@ -99,6 +99,32 @@
         <div class="vote_button" id="za">ZA</div>
         <div class="vote_button" id="przeciw">PRZECIW</div>
         <div class="vote_button" id="wstrzymaj">WSTRZYMAJ</div>
+      </div>
+    </div>
+    <div id="results_layout" class="layout" style="text-align:left">
+      <center><h1 class="label" id="numer_glosowania">GLOSOWANIE NR 420</h1></center>
+      <div class="results_stats">
+        <div class="stat_item">
+          <span class="label">GŁOSOWAŁO</span>
+          <span class="value" id="voted"></span>
+        </div>
+        <div class="stat_item">
+          <span class="label">ZA:</span>
+          <span class="value" id="for"></span>
+        </div>
+        <div class="stat_item">
+          <span class="label">PRZECIW:</span>
+          <span class="value" id="against"></span>
+        </div>
+        <div class="stat_item">
+          <span class="label">WSTRZYMAŁO SIĘ:</span>
+          <span class="value" id="abstained"></span>
+        </div>
+        <hr>
+        <div class="stat_item">
+          <span class="label">ZMIANA LICZBY POSLOW:</span>
+          <span class="value" id="seats"></span>
+        </div>
       </div>
     </div>
   </body>

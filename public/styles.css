@@ -88,10 +88,34 @@ body {
 }
 
 @media screen and (orientation: landscape) {
-    #prezes_layout {
-        display:block;
+    .show-results #results_layout,
+    .show-prezes #prezes_layout {
+        display: block; /* Only display if the parent (or body) has the right class */
     }
 }
+
+#results_layout {
+    background-color: white;
+    height: 100%
+}
+
+.stat_item {
+    display: flex; /* Enables Flexbox */
+    justify-content: space-between; /* Puts maximum space between children */
+    align-items: center; /* Vertically aligns items in the middle */
+    margin-bottom: 10px; /* Adds some space between the items */
+  }
+  
+  .label, .value {
+    flex: 1; /* Allows both label and value to grow */
+    font-size: 3.6vw;
+    font-weight: 900;
+  }
+  
+  .value {
+    text-align: right; /* Aligns the numbers to the right */
+  }
+
 
 #za {
     background-color: green;
