@@ -6,7 +6,7 @@ let opinions = [[0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0]]
-var socket = new WebSocket('ws://172.20.10.4:8080/ws')
+var socket = new WebSocket('ws://192.168.0.111:8080/ws')
 
 socket.onopen = function(e) {
     console.log("Connection established");
@@ -307,7 +307,7 @@ function drawPlayersNew(players) {
             for(let j = 0; j < 4; j++) {
                 let col_number = axis_opinion[j] > 0 ? `0${axis_opinion[j]}` : axis_opinion[j];
                 console.log(`Appending to #column${col_code}${col_number}`)
-                $(`#column${col_code}${col_number}`).append(`<div class="opinion_cube Player${playerId}"></div>`);
+                $(`#column${col_code}${col_number}`).append(`<div id="${playerId}" class="opinion_cube Player${playerId}"></div>`);
             }
         }
     })
@@ -347,8 +347,9 @@ function drawPlayersNew(players) {
 
       $(".opinion_cube").on('click', function() {
         event.stopPropagation()
-        if(cube == null){
+        if(cube == null && $(this).attr('id').slice(-1) == playerID){
             cube = this
+            prepareIndexesForChangeOpinion(cube)
         }
       })
 
@@ -403,17 +404,11 @@ function getRandomNonZero() {
 var modifiedOpinionColumnIndex = 0
 var modifiedOpinionCubeIndex = 0
 
-function setOpinions(opinions) {
-    console.log("Setting opinions: " + opinions)
-    socket.send(JSON.stringify({action: "opinions", PlayerID: playerID, opinions: opinions}))
-}
 
 
-function modifyOpinion() {
-    var cubeClass = `Player${playerID}`;
-    var cubes = $(`.${cubeClass}.opinion_cube`);
-    var columnsInfo = {};
-    switch($(cube).parent().id().slice(-3)[0]){
+function prepareIndexesForChangeOpinion(cube) {
+    var columnIndicator = $(cube).parent().attr('id').slice(-3)[0]
+    switch(columnIndicator){
         case "A":
             modifiedOpinionColumnIndex = 0
             break
@@ -429,9 +424,23 @@ function modifyOpinion() {
         default:
             console.error("ugabuga")
     }
-    
+    console.log(modifiedOpinionColumnIndex)
+    var valueAtColumn = parseInt($(cube).parent().attr('id').slice(-2))
+    console.log(valueAtColumn)
+    modifiedOpinionCubeIndex = opinions[modifiedOpinionColumnIndex].findIndex(function(value) {
+        return value === valueAtColumn
+    })
+    console.log(modifiedOpinionCubeIndex);
+}
 
+function modifyOpinion() {
+    opinions[modifiedOpinionColumnIndex][modifiedOpinionCubeIndex] = parseInt($(cube).parent().attr('id').slice(-2))
+    setOpinions(opinions)
+}
 
+function setOpinions(opinions) {
+    console.log("Setting opinions: " + opinions)
+    socket.send(JSON.stringify({action: "opinions", PlayerID: playerID, opinions: opinions}))
 }
 
 
@@ -468,9 +477,10 @@ function selectAsDestinationForBlock(column){
         //$(column).css({"background-color":"black"})
         $(column).append(cube)
         $(".klocki_column").css({"border":"0px solid black"})
+        modifyOpinion()
         cube = null
-
     }
+
 
 }
 // Clickables, Event Listeners, Interactables
