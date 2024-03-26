@@ -40,6 +40,7 @@ func CreateRoom(id string) *Room {
 		Clients: make(map[*websocket.Conn]bool),
 	}
 	rooms[id] = room
+	room.NumerGlosowania = 1
 	return room
 }
 
