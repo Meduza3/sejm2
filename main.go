@@ -708,7 +708,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/ws", handleConnections)
 
-	fmt.Printf("Server started on port %s\n!", port)
+	fmt.Printf("Server started on port %s\n!!!", port)
 
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
