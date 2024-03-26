@@ -697,9 +697,7 @@ func main() {
 
 	playersStr := flag.String("players", "8", "The number of players")
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+
 	// Parse the command-line flags
 	flag.Parse()
 
