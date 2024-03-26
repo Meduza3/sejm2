@@ -6,7 +6,9 @@ let opinions = [[0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0],
                 [0,0,0,0]]
-var socket = new WebSocket('ws://192.168.0.111:8080/ws')
+
+var roomID = prompt("Please enter the room ID:")
+var socket = new WebSocket('ws://192.168.0.111:8080/ws?roomID=' + encodeURIComponent(roomID));
 
 socket.onopen = function(e) {
     console.log("Connection established");
@@ -75,13 +77,18 @@ socket.onerror = function(error) {
 //!!! Definitions
 
 function voteZa() {
-    const message = {
-        action: "za",
-        playerID: playerID
-    };
-
-    socket.send(JSON.stringify(message));
+    if (socket.readyState === WebSocket.OPEN) {
+        const message = {
+            action: "za",
+            playerID: playerID
+        };
+        console.log("Sending message:", message);
+        socket.send(JSON.stringify(message));
+    } else {
+        console.error("WebSocket is not open.");
+    }
 }
+
 
 function votePrzeciw() {
     const message = {
@@ -379,7 +386,7 @@ function drawPlayersNew(players) {
       })
 
       switch (playerID) {
-        case 1:
+         case 1:
             $(".podpis").css({"background-color": "red"})
             $(".voting").css({"background-color": "red"})
             break

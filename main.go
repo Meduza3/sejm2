@@ -21,6 +21,35 @@ type Player struct {
 	Vote     Vote
 }
 
+type Room struct {
+	ID              string
+	Players         map[int]Player
+	Clients         map[*websocket.Conn]bool
+	Axes            [4]int
+	Mu              sync.Mutex
+	Niezrzeszeni    int
+	NumerGlosowania int
+}
+
+var rooms = make(map[string]*Room)
+
+func CreateRoom(id string) *Room {
+	room := &Room{
+		ID:      id,
+		Players: make(map[int]Player),
+		Clients: make(map[*websocket.Conn]bool),
+	}
+	rooms[id] = room
+	return room
+}
+
+func FindRoom(id string) (*Room, bool) {
+	room, exists := rooms[id]
+	fmt.Printf("Finding a room with id %s\n", id)
+	fmt.Println(exists)
+	return room, exists
+}
+
 type Vote string
 
 const (
@@ -55,11 +84,6 @@ type IdMessage struct {
 }
 
 var (
-	niezrzeszeni    int = 4
-	players             = make(map[int]Player)
-	player_count    int = 0
-	axes            [4]int
-	numerGlosowania int = 1
 	numberOfPlayers int = 8
 )
 
@@ -99,62 +123,78 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var (
-	clients = make(map[*websocket.Conn]bool)
-	mu      sync.Mutex
-)
-
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+
+	roomID := r.URL.Query().Get("roomID")
+	fmt.Printf("handleConnections called with roomID: %s\n", roomID)
+	room, exists := FindRoom(roomID)
+	if !exists {
+		room = CreateRoom(roomID)
+	}
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer ws.Close()
-
-	mu.Lock()
-	clients[ws] = true
-	mu.Unlock()
+	fmt.Println("WebSocket connection established")
+	defer func() {
+		fmt.Println("WebSocket connection closed")
+		ws.Close()
+	}()
 
 	for {
+		fmt.Println("dupadupadupa")
 		var msg WSMessage
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			fmt.Printf("error1: %v\n", err)
-			delete(clients, ws)
-			player_count--
+			fmt.Printf("error: %v\n", err)
+			//room.Mu.Lock()
+			delete(room.Clients, ws)
+			//room.Mu.Unlock()
 			break
 		}
 
+		fmt.Printf("%s: Received message: %+v\n", room.ID, msg)
+
 		switch msg.Action {
 		case "join":
-			handleJoin(ws)
+			fmt.Println("Test")
+			handleJoin(room, ws)
 		case "leave":
-			handleLeave(msg.PlayerID)
+			handleLeave(room, msg.PlayerID)
 		case "za":
-			handleZaVote(msg.PlayerID)
+			roomHandleZa(room, msg.PlayerID)
 		case "przeciw":
-			handlePrzeciwVote(msg.PlayerID)
+			roomHandlePrzeciw(room, msg.PlayerID)
 		case "wstrzymaj":
-			handleWstrzymajVote(msg.PlayerID)
+			roomHandleWstrzymaj(room, msg.PlayerID)
 		case "ustawa":
 			fmt.Println("Handling ustawa!")
-			handleUstawa(msg.Ustawa)
+			handleUstawa(room, msg.Ustawa)
 		case "opinions":
 			fmt.Println("Handling opinions!")
-			handleOpinion(msg.PlayerID, msg.Opinions)
+			handleOpinion(room, msg.PlayerID, msg.Opinions)
 		}
 	}
 }
 
-func handleOpinion(playerID int, opinions [4][4]int) {
-	player := players[playerID] // Extract the player struct from the map
-	player.Opinions = opinions  // Modify the field you want
-	players[playerID] = player  // Put the modified struct back into the map
+func handleOpinion(room *Room, playerID int, opinions [4][4]int) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
+
+	player, exists := room.Players[playerID]
+	if !exists {
+		fmt.Println("Player does not exist in this room")
+		return // Player must exist in room to modify opinions
+	}
+
+	player.Opinions = opinions      // Modify the field you want
+	room.Players[playerID] = player // Put the modified struct back into the map
 
 	// Convert your players map to a slice
-	playersSlice := make([]Player, 0, len(players))
-	for _, player := range players {
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
 		playersSlice = append(playersSlice, player)
 	}
 
@@ -162,10 +202,13 @@ func handleOpinion(playerID int, opinions [4][4]int) {
 	message := PlayersMessage{Players: playersSlice}
 
 	// Broadcast the message
-	broadcastToClients(message)
+	broadcastToRoom(room, message)
 }
 
-func handleUstawa(ustawa string) {
+func handleUstawa(room *Room, ustawa string) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
+
 	firstLetter := string(ustawa[0])
 	secondNumber, err := strconv.Atoi(string(ustawa[1:3]))
 	if err != nil {
@@ -175,114 +218,126 @@ func handleUstawa(ustawa string) {
 
 	switch firstLetter {
 	case "A":
-		if axes[0] == secondNumber {
-			axes[0] = 0
+		if room.Axes[0] == secondNumber {
+			room.Axes[0] = 0
 		} else {
-			axes[0] = secondNumber
+			room.Axes[0] = secondNumber
 		}
 
 	case "B":
-		if axes[1] == secondNumber {
-			axes[1] = 0
+		if room.Axes[1] == secondNumber {
+			room.Axes[1] = 0
 		} else {
-			axes[1] = secondNumber
+			room.Axes[1] = secondNumber
 		}
 	case "C":
-		if axes[2] == secondNumber {
-			axes[2] = 0
+		if room.Axes[2] == secondNumber {
+			room.Axes[2] = 0
 		} else {
-			axes[2] = secondNumber
+			room.Axes[2] = secondNumber
 		}
 	case "D":
-		if axes[3] == secondNumber {
-			axes[3] = 0
+		if room.Axes[3] == secondNumber {
+			room.Axes[3] = 0
 		} else {
-			axes[3] = secondNumber
+			room.Axes[3] = secondNumber
 		}
 
 	}
-	axesData := map[string][4]int{"axes": axes}
-	broadcastToClients(axesData)
+	axesData := map[string][4]int{"axes": room.Axes}
+	broadcastToRoom(room, axesData)
 }
 
-func handleLeave(playerID int) {
-	fmt.Printf("Player %d LEFT\n", playerID)
-	delete(players, playerID)
-	playersSlice := make([]Player, 0, len(players))
-	for _, player := range players {
+func handleLeave(room *Room, playerID int) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
+
+	fmt.Printf("%s: Player %d LEFT\n", room.ID, playerID)
+	delete(room.Players, playerID)
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
 		playersSlice = append(playersSlice, player)
 	}
 	message := PlayersMessage{Players: playersSlice}
 
-	// Broadcast the message
-	for socket := range clients {
-		socket.WriteJSON(message)
-	}
+	broadcastToRoom(room, message)
 }
 
-func handleZaVote(playerID int) {
-	player, exists := players[playerID]
+func roomHandleZa(room *Room, playerID int) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
+
+	player, exists := room.Players[playerID]
 	if !exists {
-		fmt.Println("Player does not exist")
+		fmt.Println("Player does not exist in this room")
 		return
 	}
+
 	if player.Vote != FOR {
-		fmt.Printf("Player %d voted ZA\n", playerID)
+		fmt.Printf("%s: Player %d voted ZA\n", room.ID, playerID)
 		player.Vote = FOR
-		players[playerID] = player
+		room.Players[playerID] = player
 	} else {
-		fmt.Printf("Player %d cancelled their vote.\n", playerID)
+		fmt.Printf("%s: Player %d cancelled their vote.\n", room.ID, playerID)
 		player.Vote = NULL
-		players[playerID] = player
+		room.Players[playerID] = player
 	}
 
-	checkForEndOfRound()
+	checkForEndOfRound(room)
 }
 
-func handlePrzeciwVote(playerID int) {
-	player, exists := players[playerID]
+func roomHandlePrzeciw(room *Room, playerID int) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
+
+	player, exists := room.Players[playerID]
 	if !exists {
-		fmt.Println("Player does not exist")
+		fmt.Println("Player does not exist in this room")
 		return
 	}
+
 	if player.Vote != AGAINST {
-		fmt.Printf("Player %d voted PRZECIW\n", playerID)
+		fmt.Printf("%s: Player %d voted PRZECIW\n", room.ID, playerID)
 		player.Vote = AGAINST
-		players[playerID] = player
+		room.Players[playerID] = player
 	} else {
-		fmt.Printf("Player %d cancelled their vote.\n", playerID)
+		fmt.Printf("%s: Player %d cancelled their vote.\n", room.ID, playerID)
 		player.Vote = NULL
-		players[playerID] = player
+		room.Players[playerID] = player
 	}
 
-	checkForEndOfRound()
+	checkForEndOfRound(room)
 }
 
-func handleWstrzymajVote(playerID int) {
-	player, exists := players[playerID]
+func roomHandleWstrzymaj(room *Room, playerID int) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
+
+	player, exists := room.Players[playerID]
 	if !exists {
-		fmt.Println("Player does not exist")
+		fmt.Println("Player does not exist in this room")
 		return
 	}
+
 	if player.Vote != ABSTAIN {
-		fmt.Printf("Player %d voted WSTRZYMAJ\n", playerID)
+		fmt.Printf("%s: Player %d voted WSTRZYMAJ\n", room.ID, playerID)
 		player.Vote = ABSTAIN
-		players[playerID] = player
+		room.Players[playerID] = player
 	} else {
-		fmt.Printf("Player %d cancelled their vote.\n", playerID)
+		fmt.Printf("%s: Player %d cancelled their vote.\n", room.ID, playerID)
 		player.Vote = NULL
-		players[playerID] = player
+		room.Players[playerID] = player
 	}
 
-	checkForEndOfRound()
+	checkForEndOfRound(room)
 }
 
-func checkForEndOfRound() {
+func checkForEndOfRound(room *Room) {
 
 	var roundShouldEnd = true
 
-	playersSlice := make([]Player, 0, len(players))
-	for _, player := range players {
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
 		playersSlice = append(playersSlice, player)
 	}
 
@@ -295,22 +350,26 @@ func checkForEndOfRound() {
 
 	if roundShouldEnd {
 		fmt.Println("EVERYONE VOTED!")
-		calculateRound()
+		calculateRound(room)
 	}
 }
 
-func handleJoin(ws *websocket.Conn) {
-	mu.Lock()
-	defer mu.Unlock()
+func handleJoin(room *Room, ws *websocket.Conn) {
+	broadcastToRoom(room, WSMessage{Action: "someonejoins"})
+	fmt.Printf("An attempt to join room %s\n", room.ID)
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
 
-	player_count++
+	room.Clients[ws] = true
+
 	a := randInt()
 	b := randInt()
 	c := randInt()
 	d := randInt()
 	count := math.Floor(float64(460 / numberOfPlayers))
+	playerID := len(room.Players) + 1
 	player := Player{
-		Id:    len(players) + 1,
+		Id:    playerID,
 		Count: int(count),
 		Opinions: [4][4]int{
 			{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
@@ -320,43 +379,41 @@ func handleJoin(ws *websocket.Conn) {
 		},
 		Vote: NULL,
 	}
-	fmt.Printf("Player %d joined\n", player.Id)
-	players[player.Id] = player
+	fmt.Printf("%s: Player %d joined\n", room.ID, player.Id)
+	room.Players[player.Id] = player
 
 	// Convert your players map to a slice
-	playersSlice := make([]Player, 0, len(players))
-	for _, player := range players {
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
 		playersSlice = append(playersSlice, player)
 	}
 
 	// Create an instance of PlayersMessage and set the Players field
 	message := PlayersMessage{Players: playersSlice}
-
-	// Broadcast the message
-	ws.WriteJSON(IdMessage{Id: player.Id})
-	for socket := range clients {
-		socket.WriteJSON(message)
-	}
+	ws.WriteJSON(IdMessage{Id: playerID})
+	broadcastToRoom(room, message)
 }
 
-func broadcastToClients(message interface{}) {
-	mu.Lock()
-	defer mu.Unlock()
-	for client := range clients {
+func broadcastToRoom(room *Room, message interface{}) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
+	for client := range room.Clients {
 		err := client.WriteJSON(message)
 		if err != nil {
-			fmt.Printf("error: %v", err)
+			fmt.Printf("error broadcasting to room %s: %v", room.ID, err)
 			client.Close()
-			delete(clients, client)
+			delete(room.Clients, client)
 		}
 	}
 }
 
-func calculateRound() {
+func calculateRound(room *Room) {
+	//room.Mu.Lock()
+	//defer room.Mu.Unlock()
 	var playersTemp []Player
 
-	for _, player := range players { // Iterate through the map
-		playersTemp = append(playersTemp, Player{Id: player.Id, Count: player.Count, Opinions: player.Opinions, Vote: player.Vote})
+	for _, player := range room.Players { // Iterate through the map
+		playersTemp = append(playersTemp, player)
 		// Appending each player to playersTemp slice
 	}
 
@@ -367,7 +424,7 @@ func calculateRound() {
 	sumaZa := 0
 	sumaPrzeciw := 0
 	sumaWstrzymal := 0
-	for _, player := range players {
+	for _, player := range room.Players {
 		if player.Vote == FOR {
 			sumaZa += player.Count
 		} else if player.Vote == AGAINST {
@@ -379,61 +436,61 @@ func calculateRound() {
 	niezrzeszeniZa := rand.Intn(2)
 	var niezrzeszeniVote string
 	if niezrzeszeniZa == 0 { // Generates either 0 or 1 randomly
-		sumaPrzeciw += niezrzeszeni
+		sumaPrzeciw += room.Niezrzeszeni
 		niezrzeszeniVote = "PRZECIW"
 	} else {
-		sumaZa += niezrzeszeni
+		sumaZa += room.Niezrzeszeni
 		niezrzeszeniVote = "ZA"
 	}
 
-	fmt.Println("Here are the players:")
+	fmt.Printf("%s: Here are the players:\n", room.ID)
 	for _, tempPlayer := range playersTemp {
 		fmt.Println(tempPlayer)
 	}
-	fmt.Printf("Niezrzeszeni: %d zaglosowalo %s\n ", niezrzeszeni, niezrzeszeniVote)
+	fmt.Printf("%s: Niezrzeszeni: %d zaglosowalo %s\n ", room.ID, room.Niezrzeszeni, niezrzeszeniVote)
 
-	fmt.Println("Here is the legislation:")
-	fmt.Println(axes)
+	fmt.Printf("%s: Here is the legislation: ", room.ID)
+	fmt.Println(room.Axes)
 
 	for _, gracz := range playersTemp { //Dla kazdego gracza
 		for i := 0; i <= 3; i++ { //Dla kazdej z osi
-			if axes[i] != 0 {
+			if room.Axes[i] != 0 {
 				var bloczki float64 = 0
 				for j := 0; j <= 3; j++ { //Dla kazdego z klockow tego gracza
 					if gracz.Vote == AGAINST {
-						if isInLegislationArea(gracz.Opinions[i][j], axes[i]) {
+						if isInLegislationArea(gracz.Opinions[i][j], room.Axes[i]) {
 							bloczki += 25
 						}
 
 					} else if gracz.Vote == FOR {
-						if !isInLegislationArea(gracz.Opinions[i][j], axes[i]) {
+						if !isInLegislationArea(gracz.Opinions[i][j], room.Axes[i]) {
 							bloczki += 25
 						}
 					}
 				}
 				if bloczki != 0 {
 					var odchodzacy = math.Ceil((bloczki / 100) * 0.2 * float64(gracz.Count)) // Mamy ilosc odchodzacych
-					fmt.Printf("Gracz %d, os %s: Wkurzylo sie %d bloczkow, co daje %d odchodzacych\n", gracz.Id, numToAxis(i), int(bloczki/25), int(odchodzacy))
-					naTejOsiWystajeNaPrawo := wystawalbyNaPrawo(gracz.Opinions[i][:], axes[i])
+					fmt.Printf("%s: Gracz %d, os %s: Wkurzylo sie %d bloczkow, co daje %d odchodzacych\n", room.ID, gracz.Id, numToAxis(i), int(bloczki/25), int(odchodzacy))
+					naTejOsiWystajeNaPrawo := wystawalbyNaPrawo(gracz.Opinions[i][:], room.Axes[i])
 					if naTejOsiWystajeNaPrawo {
-						fmt.Printf("Gracz %d, os %s: wystaje na prawo\n", gracz.Id, numToAxis(i))
+						fmt.Printf("%s: Gracz %d, os %s: wystaje na prawo\n", room.ID, gracz.Id, numToAxis(i))
 					} else {
-						fmt.Printf("Gracz %d, os %s: wystaje na lewo\n", gracz.Id, numToAxis(i))
+						fmt.Printf("%s: Gracz %d, os %s: wystaje na lewo\n", room.ID, gracz.Id, numToAxis(i))
 					}
 					minDistance := 100
 					var najblizszaPartia *Player
 
 					najbardziejNaPrawo := max(gracz.Opinions[i][:])
-					fmt.Printf("Gracz %d, os %s: Najbardziej na prawo wysuniety klocek jest na %d\n", gracz.Id, numToAxis(i), najbardziejNaPrawo)
+					fmt.Printf("%s: Gracz %d, os %s: Najbardziej na prawo wysuniety klocek jest na %d\n", room.ID, gracz.Id, numToAxis(i), najbardziejNaPrawo)
 
 					najbardziejNaLewo := min(gracz.Opinions[i][:])
-					fmt.Printf("Gracz %d, os %s: Najbardziej na lewo wysuniety klocek jest na %d\n", gracz.Id, numToAxis(i), najbardziejNaLewo)
+					fmt.Printf("%s: Gracz %d, os %s: Najbardziej na lewo wysuniety klocek jest na %d\n", room.ID, gracz.Id, numToAxis(i), najbardziejNaLewo)
 					for _, drugiGracz := range playersTemp {
-						if drugiGracz.Vote != gracz.Vote {
+						if drugiGracz.Vote != gracz.Vote && drugiGracz.Vote != ABSTAIN {
 							if gracz.Vote == FOR && naTejOsiWystajeNaPrawo {
 								//closest party to the right
 								najblizszaOpiniaDrugiegoGracza := minGreaterThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaPrawo)
-								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("%s: Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", room.ID, gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != 420 {
 									distance := abs(najbardziejNaPrawo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != FOR && distance < minDistance {
@@ -445,7 +502,7 @@ func calculateRound() {
 							} else if gracz.Vote == FOR && !naTejOsiWystajeNaPrawo {
 								//Closest party to the left
 								najblizszaOpiniaDrugiegoGracza := maxSmallerThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaLewo)
-								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("%s: Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", room.ID, gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != -420 {
 									distance := abs(najbardziejNaLewo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != FOR && distance < minDistance {
@@ -457,7 +514,7 @@ func calculateRound() {
 							} else if gracz.Vote == AGAINST && naTejOsiWystajeNaPrawo {
 								//Closest party to the left
 								najblizszaOpiniaDrugiegoGracza := maxSmallerThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaLewo)
-								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("%s: Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", room.ID, gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != -420 {
 									distance := abs(najbardziejNaLewo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != AGAINST && distance < minDistance {
@@ -469,7 +526,7 @@ func calculateRound() {
 							} else if gracz.Vote == AGAINST && !naTejOsiWystajeNaPrawo {
 								//Closest party to the right
 								najblizszaOpiniaDrugiegoGracza := minGreaterThanThreshold(drugiGracz.Opinions[i][:], najbardziejNaPrawo)
-								fmt.Printf("Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
+								fmt.Printf("%s: Gracz %d, os %s, drugi gracz %d: Najblizsza opinia drugiego gracza jest na %d\n", room.ID, gracz.Id, numToAxis(i), drugiGracz.Id, najblizszaOpiniaDrugiegoGracza)
 								if najblizszaOpiniaDrugiegoGracza != 420 {
 									distance := abs(najbardziejNaPrawo - najblizszaOpiniaDrugiegoGracza)
 									if drugiGracz.Vote != AGAINST && distance < minDistance {
@@ -479,58 +536,58 @@ func calculateRound() {
 								}
 							}
 						} else {
-							fmt.Printf("Gracz %d, os %s: drugi gracz %d zaglosowal tak samo, pomijamy\n", gracz.Id, numToAxis(i), drugiGracz.Id)
+							fmt.Printf("%s: Gracz %d, os %s: drugi gracz %d zaglosowal tak samo, pomijamy\n", room.ID, gracz.Id, numToAxis(i), drugiGracz.Id)
 						}
 					}
 					if najblizszaPartia != nil {
-						fmt.Printf("Gracz %d, os %s: Poslowie przejda do partii gracza %d\n", gracz.Id, numToAxis(i), najblizszaPartia.Id)
+						fmt.Printf("%s: Gracz %d, os %s: Poslowie przejda do partii gracza %d\n", room.ID, gracz.Id, numToAxis(i), najblizszaPartia.Id)
 					} else {
-						fmt.Printf("Gracz %d, os %s: Poslowie przejda do niezrzeszonych\n", gracz.Id, numToAxis(i))
+						fmt.Printf("%s: Gracz %d, os %s: Poslowie przejda do niezrzeszonych\n", room.ID, gracz.Id, numToAxis(i))
 					}
-					player, exists := players[gracz.Id]
+					player, exists := room.Players[gracz.Id]
 					if exists {
 						player.Count -= int(odchodzacy)
-						players[gracz.Id] = player
+						room.Players[gracz.Id] = player
 					} else {
 						fmt.Println("Player does not exist.")
 					}
 					if najblizszaPartia != nil {
-						secondPlayer := players[najblizszaPartia.Id]
+						secondPlayer := room.Players[najblizszaPartia.Id]
 						secondPlayer.Count += int(odchodzacy)
-						players[najblizszaPartia.Id] = secondPlayer
+						room.Players[najblizszaPartia.Id] = secondPlayer
 					} else {
-						niezrzeszeni += int(odchodzacy)
+						room.Niezrzeszeni += int(odchodzacy)
 					}
 				} else {
-					fmt.Printf("Gracz %d, os %s: Nikogo nie wkurzyl, pomijamy\n", gracz.Id, numToAxis(i))
+					fmt.Printf("%s: Gracz %d, os %s: Nikogo nie wkurzyl, pomijamy\n", room.ID, gracz.Id, numToAxis(i))
 				}
 
 			} else {
-				fmt.Printf("Gracz %d, os %s: nie dotyczy tej ustawy, pomijamy\n", gracz.Id, numToAxis(i))
+				fmt.Printf("%s: Gracz %d, os %s: nie dotyczy tej ustawy, pomijamy\n", room.ID, gracz.Id, numToAxis(i))
 			}
 		}
-		resetVotes()
+		resetVotes(room)
 	}
 
 	fmt.Println("Here are the results:")
 
-	fmt.Printf("GLOSOWALO: %d\nZA: %d\nPRZECIW: %d\nWSTRZYMALO SIE: %d\n", sumaZa+sumaPrzeciw+sumaWstrzymal, sumaZa, sumaPrzeciw, sumaWstrzymal)
+	fmt.Printf("%s: GLOSOWALO: %d\nZA: %d\nPRZECIW: %d\nWSTRZYMALO SIE: %d\n", room.ID, sumaZa+sumaPrzeciw+sumaWstrzymal, sumaZa, sumaPrzeciw, sumaWstrzymal)
 	if sumaZa > sumaPrzeciw {
-		fmt.Printf("Ustawa PRZESZLA\n")
+		fmt.Printf("%s: Ustawa PRZESZLA\n", room.ID)
 	} else {
-		fmt.Printf("Ustawa ODRZUCONA\n")
+		fmt.Printf("%s: Ustawa ODRZUCONA\n", room.ID)
 	}
 	changes := make(map[string]int)
 	for _, originalPlayer := range playersTemp {
-		player := players[originalPlayer.Id]
+		player := room.Players[originalPlayer.Id]
 		changeCount := player.Count - originalPlayer.Count
-		fmt.Printf("Gracz %d ma teraz %d poslow. Zmiana: %d\n", player.Id, player.Count, changeCount)
+		fmt.Printf("%s: Gracz %d ma teraz %d poslow. Zmiana: %d\n", room.ID, player.Id, player.Count, changeCount)
 		changes[strconv.Itoa(player.Id)] = changeCount
 	}
-	fmt.Printf("Niezrzeszeni: %d\n", niezrzeszeni)
-	var message = WSMessage{Action: "results", SumaZa: sumaZa, SumaPrzeciw: sumaPrzeciw, SumaWstrzymal: sumaWstrzymal, NumerGlosowania: numerGlosowania, Changes: changes}
-	broadcastToClients(message)
-	numerGlosowania++
+	fmt.Printf("Niezrzeszeni: %d\n", room.Niezrzeszeni)
+	var message = WSMessage{Action: "results", SumaZa: sumaZa, SumaPrzeciw: sumaPrzeciw, SumaWstrzymal: sumaWstrzymal, NumerGlosowania: room.NumerGlosowania, Changes: changes}
+	broadcastToRoom(room, message)
+	room.NumerGlosowania++
 }
 
 func wystawalbyNaPrawo(opinion []int, legislation int) bool {
@@ -605,17 +662,15 @@ func numToAxis(num int) string {
 	return "ugabuga"
 }
 
-func resetVotes() {
-	for id := range players {
-		player := players[id]
+func resetVotes(room *Room) {
+	for id := range room.Players {
+		player := room.Players[id]
 		player.Vote = NULL
-		players[id] = player
+		room.Players[id] = player
 	}
 
 	message := WSMessage{Action: "resetVotes"}
-	for socket := range clients {
-		socket.WriteJSON(message)
-	}
+	broadcastToRoom(room, message)
 }
 
 func isInLegislationArea(opinion int, legislation int) bool {
@@ -645,7 +700,6 @@ func main() {
 
 	// Convert the number of players from string to int
 	numberOfPlayers, _ = strconv.Atoi(*playersStr)
-	niezrzeszeni = 460 % numberOfPlayers
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/ws", handleConnections)
 
