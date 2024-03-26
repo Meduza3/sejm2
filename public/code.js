@@ -8,7 +8,7 @@ let opinions = [[0,0,0,0],
                 [0,0,0,0]]
 
 var roomID = prompt("Please enter the room ID:")
-var socket = new WebSocket('wss://https://grawsejm-1df77e54adaf.herokuapp.com/ws?roomID=' + encodeURIComponent(roomID));
+var socket = new WebSocket('ws://https://grawsejm-1df77e54adaf.herokuapp.com/ws?roomID=' + encodeURIComponent(roomID));
 
 socket.onopen = function(e) {
     console.log("Connection established");
