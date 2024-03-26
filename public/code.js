@@ -524,7 +524,7 @@ function pingServer(){
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
 
-    setTimeout(25000, pingServer())
+    setTimeout(pingServer, 25000())
     $('#za').on('click', function() {
         voteZa(playerID);
     });
