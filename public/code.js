@@ -515,10 +515,16 @@ function selectAsDestinationForBlock(column){
 
 
 }
+
+function pingServer(){
+    console.log("pinging server.")
+    socket.send(`${roomID}: ${playerID}: ping`)
+}
+
 // Clickables, Event Listeners, Interactables
 $(document).ready(function() {
 
-
+    setTimeout(25000, pingServer())
     $('#za').on('click', function() {
         voteZa(playerID);
     });
