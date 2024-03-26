@@ -45,8 +45,8 @@ func CreateRoom(id string) *Room {
 
 func FindRoom(id string) (*Room, bool) {
 	room, exists := rooms[id]
-	fmt.Printf("Finding a room with id %s\n", id)
-	fmt.Println(exists)
+	//fmt.Printf("Finding a room with id %s\n", id)
+	//fmt.Println(exists)
 	return room, exists
 }
 
@@ -126,7 +126,7 @@ var upgrader = websocket.Upgrader{
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	roomID := r.URL.Query().Get("roomID")
-	fmt.Printf("handleConnections called with roomID: %s\n", roomID)
+	//fmt.Printf("handleConnections called with roomID: %s\n", roomID)
 	room, exists := FindRoom(roomID)
 	if !exists {
 		room = CreateRoom(roomID)
@@ -137,14 +137,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("WebSocket connection established")
+	//fmt.Println("WebSocket connection established")
 	defer func() {
 		fmt.Println("WebSocket connection closed")
 		ws.Close()
 	}()
 
 	for {
-		fmt.Println("dupadupadupa")
+		//fmt.Println("dupadupadupa")
 		var msg WSMessage
 		err := ws.ReadJSON(&msg)
 		if err != nil {
@@ -155,7 +155,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		fmt.Printf("%s: Received message: %+v\n", room.ID, msg)
+		//fmt.Printf("%s: Received message: %+v\n", room.ID, msg)
 
 		switch msg.Action {
 		case "join":
@@ -355,8 +355,8 @@ func checkForEndOfRound(room *Room) {
 }
 
 func handleJoin(room *Room, ws *websocket.Conn) {
-	broadcastToRoom(room, WSMessage{Action: "someonejoins"})
-	fmt.Printf("An attempt to join room %s\n", room.ID)
+	//broadcastToRoom(room, WSMessage{Action: "someonejoins"})
+	//fmt.Printf("An attempt to join room %s\n", room.ID)
 	//room.Mu.Lock()
 	//defer room.Mu.Unlock()
 
