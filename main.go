@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
-	"os"
 	"sort"
 	"strconv"
 	"sync"
@@ -696,7 +695,6 @@ func isInLegislationArea(opinion int, legislation int) bool {
 func main() {
 
 	playersStr := flag.String("players", "8", "The number of players")
-	port := os.Getenv("PORT")
 
 	// Parse the command-line flags
 	flag.Parse()
@@ -706,9 +704,9 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/ws", handleConnections)
 
-	fmt.Printf("Server started on port %s\n!!!", port)
+	fmt.Printf("Server started on port %s\n!!!", "8080")
 
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(":"+"8080", nil)
 	if err != nil {
 		panic(err)
 	}
