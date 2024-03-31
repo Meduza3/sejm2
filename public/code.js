@@ -33,6 +33,8 @@ socket.onmessage = function(event) {
             }
         })
         drawPlayersNew(data.players);
+        drawPlayersAfera(data.players);
+        updateKoryto(data.players);
     } else if (data.action == "resetVotes") {
         console.log("Resetting the vote");
         toggleButtonState(null, true); // Force reset without toggling any specific button
@@ -425,7 +427,45 @@ function drawPlayersNew(players) {
 }
 
 function drawPlayersAfera(players) {
-    
+    $(".afera_pawn").remove();
+    players.forEach((player) => {
+        player_afera = player.Afera
+        playerId = player.Id
+        $(`#afera${player_afera}`).append(`<div id="${playerId}" class="afera_pawn Player${playerId}"></div>`)
+    })
+
+    $(".Player1").css({
+        "background-color": "red",
+        "box-shadow": "inset 0 0 2vw darkred"
+      });
+      $(".Player2").css({
+        "background-color": "blue",
+        "box-shadow": "inset 0 0 2vw darkblue"
+      });
+      $(".Player3").css({
+        "background-color": "green",
+        "box-shadow": "inset 0 0 2vw darkgreen"
+      });
+      $(".Player4").css({
+        "background-color": "yellow",
+        "box-shadow": "inset 0 0 2vw olive"
+      });
+      $(".Player5").css({
+        "background-color": "darkgrey",
+        "box-shadow": "inset 0 0 2vw dimgrey"
+      });
+      $(".Player6").css({
+        "background-color": "orange",
+        "box-shadow": "inset 0 0 2vw saddlebrown"
+      });
+      $(".Player7").css({
+        "background-color": "pink",
+        "box-shadow": "inset 0 0 2vw hotpink"
+      });
+      $(".Player8").css({
+        "background-color": "purple",
+        "box-shadow": "inset 0 0 2vw indigo"
+      });
 }
 
 function setUstawa(code) {
@@ -534,24 +574,32 @@ function updateCSSforTabChange(){
     switch(marszalekTab) {
         case 0:
             $(".tab").css("display", "none")
+            $(".tab_button").css("background-color", "gray")
+            $("#axes_button").css("background-color", "lightgray")
             $("#axes_tab").css("display","block")
             break
         case 1:
             $(".tab").css("display", "none")
+            $(".tab_button").css("background-color", "gray")
+            $("#afera_button").css("background-color", "lightgray")
             $("#afera_tab").css("display","block")
             break
         case 2:
             $(".tab").css("display", "none")
+            $(".tab_button").css("background-color", "gray")
+            $("#koryto_button").css("background-color", "lightgray")
             $("#koryto_tab").css("display","block")
             break
         case 3:
             $(".tab").css("display", "none")
+            $(".tab_button").css("background-color", "gray")
+            $("#actions_button").css("background-color", "lightgray")
             $("#actions_tab").css("display","block")
             break  
     }
 }
 
-function updateKoryto() {
+function updateKoryto(players) {
     var $koryto = $('#koryto');
     for (var i = 0; i < 46; i++) {
         var $row = $('<div class="koryto_row"></div>'); // Create a new row

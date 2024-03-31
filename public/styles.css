@@ -47,6 +47,12 @@ body {
     width: 100%;
 }
 
+.afera_pawn {
+    height: 50%;
+    width: 10%;
+    border-radius: 50%;
+}
+
 .klocki_space {
     display:flex;
     background-color: lightgray;
@@ -111,7 +117,7 @@ body {
     width: 25%;
     height: 100%;
     background-color: gray;
-    box-shadow: inset 0 0 0 1vw #245718;
+    box-shadow: inset 0 0 0 1vw rgb(80, 80, 80);
     text-align: center;
     display: flex;
     justify-content: center;
@@ -132,8 +138,10 @@ body {
 .afera_row {
     height: 20%;
     width: 100%;
+    flex: 1;
     /*box-shadow: inset 0 0 0 1vw; */
     display:flex;
+    justify-content: space-between;
     flex-direction: row;
 }
 
@@ -150,6 +158,9 @@ body {
 .afera_row_space {
     width: 80%;
     box-shadow: inset 0 0 0 1vw gray;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #koryto {
