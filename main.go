@@ -15,11 +15,12 @@ import (
 )
 
 type Player struct {
-	Id       int
-	Count    int
-	Opinions [4][4]int
-	Vote     Vote
-	Afera    int
+	Id         int
+	Count      int
+	Opinions   [4][4]int
+	Vote       Vote
+	Afera      int
+	Dyscyplina int
 }
 
 type Room struct {
@@ -30,6 +31,7 @@ type Room struct {
 	Mu              sync.Mutex
 	Niezrzeszeni    int
 	NumerGlosowania int
+	Przemowa        int
 }
 
 var rooms = make(map[string]*Room)
@@ -76,6 +78,7 @@ type WSMessage struct {
 	NumerGlosowania int            `json:"numer",omitempty`
 	Changes         map[string]int `json:"changes,omitempty"`
 	Afera           int            `json:"afera,omitempty"`
+	Count           int            `json:"count,omitempty"`
 }
 
 type PlayersMessage struct {
@@ -181,8 +184,126 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		case "afera":
 			fmt.Println("Handling afera!")
 			handleAfera(room, msg.PlayerID, msg.Afera)
+		case "updateCount":
+			fmt.Println("Updating player count!")
+			handleUpdateCount(room, msg.PlayerID, msg.Count)
+		case "modifyCount":
+			fmt.Println("Modifying player count!")
+			handleModifyCount(room, msg.PlayerID, msg.Count)
+		case "negocjacje":
+			fmt.Println("Negocjacje!")
+			handleNegocjacje(room, msg.PlayerID)
+		case "wydalenie":
+			handleWydalenie(room, msg.PlayerID)
+		case "dyscyplina":
+			handleDyscyplina(room, msg.PlayerID)
+		case "przemowa":
+			handlePrzemowa(room, msg.Count)
 		}
 	}
+}
+
+func handlePrzemowa(room *Room, przemowa int) {
+	this_room := rooms[room.ID]
+	this_room.Przemowa += przemowa
+	rooms[room.ID] = this_room
+}
+
+func handleDyscyplina(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+		fmt.Println("Player does not exist in this room:)")
+	} else {
+		player.Dyscyplina += 1
+		room.Players[playerID] = player
+	}
+
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playersSlice = append(playersSlice, player)
+	}
+	message := PlayersMessage{Players: playersSlice}
+	broadcastToRoom(room, message)
+}
+
+func handleWydalenie(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+		fmt.Println("Player does not exist in this room:)")
+	} else {
+		player.Count = player.Count - 1
+		if player.Afera > 0 {
+			player.Afera = player.Afera - 1
+		}
+		room.Players[playerID] = player
+	}
+
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playersSlice = append(playersSlice, player)
+	}
+	message := PlayersMessage{Players: playersSlice}
+	broadcastToRoom(room, message)
+}
+
+func handleNegocjacje(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+		fmt.Println("Player does not exist in this room:)")
+	} else {
+		player.Count = player.Count + room.Niezrzeszeni
+		room.Niezrzeszeni = 0
+		room.Players[playerID] = player
+	}
+
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playersSlice = append(playersSlice, player)
+	}
+	message := PlayersMessage{Players: playersSlice}
+	broadcastToRoom(room, message)
+}
+
+func handleModifyCount(room *Room, playerID int, count int) {
+	if playerID != 0 {
+		player, exists := room.Players[playerID]
+		if !exists {
+			fmt.Println("Player does not exist in this room")
+		} else {
+			player.Count = player.Count + count
+			room.Players[playerID] = player
+		}
+	} else {
+		room.Niezrzeszeni = room.Niezrzeszeni + count
+	}
+
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playersSlice = append(playersSlice, player)
+	}
+	message := PlayersMessage{Players: playersSlice}
+	broadcastToRoom(room, message)
+}
+
+func handleUpdateCount(room *Room, playerID int, count int) {
+	if playerID != 0 {
+		player, exists := room.Players[playerID]
+		if !exists {
+			fmt.Println("Player does not exist in this room")
+		} else {
+			player.Count = count
+			room.Players[playerID] = player
+		}
+	} else {
+		room.Niezrzeszeni = count
+	}
+
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playersSlice = append(playersSlice, player)
+	}
+	message := PlayersMessage{Players: playersSlice}
+	broadcastToRoom(room, message)
 }
 
 func handleAfera(room *Room, playerID int, afera int) {
@@ -451,8 +572,8 @@ func calculateRound(room *Room) {
 		return playersTemp[i].Id < playersTemp[j].Id
 	})
 
-	sumaZa := 0
-	sumaPrzeciw := 0
+	sumaZa := 0 + room.Przemowa
+	sumaPrzeciw := 0 - room.Przemowa
 	sumaWstrzymal := 0
 	for _, player := range room.Players {
 		if player.Vote == FOR {
@@ -500,6 +621,14 @@ func calculateRound(room *Room) {
 				}
 				if bloczki != 0 {
 					var odchodzacy = math.Ceil((bloczki / 100) * 0.2 * float64(gracz.Count) * convertAferomierzToMultiplier(gracz.Afera)) // Mamy ilosc odchodzacych
+					if gracz.Dyscyplina > 0 {
+						odchodzacy -= 10
+						gracz.Dyscyplina -= 1
+
+					}
+					if odchodzacy < 0 {
+						odchodzacy = 0
+					}
 					fmt.Printf("%s: Gracz %d, os %s: Wkurzylo sie %d bloczkow, co daje %d odchodzacych\n", room.ID, gracz.Id, numToAxis(i), int(bloczki/25), int(odchodzacy))
 					naTejOsiWystajeNaPrawo := wystawalbyNaPrawo(gracz.Opinions[i][:], room.Axes[i])
 					if naTejOsiWystajeNaPrawo {
@@ -615,13 +744,13 @@ func calculateRound(room *Room) {
 		changes[strconv.Itoa(player.Id)] = changeCount
 	}
 	fmt.Printf("Niezrzeszeni: %d\n", room.Niezrzeszeni)
+	lowerAferomierz(room)
 	var message = WSMessage{Action: "results", SumaZa: sumaZa, SumaPrzeciw: sumaPrzeciw, SumaWstrzymal: sumaWstrzymal, NumerGlosowania: room.NumerGlosowania, Changes: changes}
 	playersSlice := make([]Player, 0, len(room.Players))
 	for _, player := range room.Players {
 		playersSlice = append(playersSlice, player)
 	}
 	var message2 = PlayersMessage{Players: playersSlice}
-	lowerAferomierz(room)
 	broadcastToRoom(room, message)
 	broadcastToRoom(room, message2)
 	room.NumerGlosowania++
@@ -777,7 +906,7 @@ func main() {
 			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
 		}))
 	*/
-	//Change to ListenAndServeTSL(":"+port, certPath, keyPath, nil)
+	//err := http.ListenAndServeTLS(":"+port, certPath, keyPath, nil)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic(err)

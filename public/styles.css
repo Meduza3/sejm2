@@ -192,6 +192,331 @@ body {
     display: flex;
 }
 
+.actions_column {
+    width: 50%;
+
+}
+
+.card {
+    margin: 2% 2% 2% 2%;
+    width: 100%;
+    height: 30%;
+    background-color: gray;
+    text-align: center;
+}
+
+.gui_row {
+    display: flex;
+    height: 33%;
+    justify-content: space-between;
+}
+
+.gui_player {
+    width: 33%;
+
+}
+
+
+.card_main {
+    height:90%;
+    width:100%;
+}
+
+.card_label {
+    height: 10%;
+    width:100%;
+    background-color: black;
+    color: white;
+    display: flex;
+    justify-content: center;
+    font-size: xx-large;
+    text-align: center;
+}
+#dyscyplina {
+    background-image: url("assets/dyscyplina2.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+#dyscyplina1 {
+    background-color: red;
+    box-shadow: inset 0 0 5vw darkred
+}
+
+#dyscyplina2 {
+    background-color: blue;
+    box-shadow: inset 0 0 5vw darkblue
+}
+
+#dyscyplina3 {
+    background-color: green;
+    box-shadow: inset 0 0 5vw darkgreen
+}
+
+#dyscyplina4 {
+    background-color: yellow;
+    box-shadow: inset 0 0 5vw olive
+}
+
+#dyscyplina5 {
+    background-color: darkgrey;
+    box-shadow: inset 0 0 5vw dimgrey;
+}
+
+#dyscyplina6 {
+    background-color: orange;
+    box-shadow: inset 0 0 5vw saddlebrown
+}
+
+#dyscyplina7 {
+    background-color: pink;
+    box-shadow: inset 0 0 5vw hotpink
+}
+
+#dyscyplina8 {
+    background-color: purple;
+    box-shadow: inset 0 0 5vw indigo
+}
+
+#negocjacje {
+    background-image: url("assets/negocjacje2.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+#negocjacje1 {
+    background-color: red;
+    box-shadow: inset 0 0 5vw darkred
+}
+
+#negocjacje2 {
+    background-color: blue;
+    box-shadow: inset 0 0 5vw darkblue
+}
+
+#negocjacje3 {
+    background-color: green;
+    box-shadow: inset 0 0 5vw darkgreen
+}
+
+#negocjacje4 {
+    background-color: yellow;
+    box-shadow: inset 0 0 5vw olive
+}
+
+#negocjacje5 {
+    background-color: darkgrey;
+    box-shadow: inset 0 0 5vw dimgrey;
+}
+
+#negocjacje6 {
+    background-color: orange;
+    box-shadow: inset 0 0 5vw saddlebrown
+}
+
+#negocjacje7 {
+    background-color: pink;
+    box-shadow: inset 0 0 5vw hotpink
+}
+
+#negocjacje8 {
+    background-color: purple;
+    box-shadow: inset 0 0 5vw indigo
+}
+
+#przekupstwo {
+    background-image: url("assets/przekupstwo2.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+.card_gui {
+    display: none;
+}
+
+.przekupstwo_row {
+    height: 33%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+#przekupstwo_arrow {
+    font-size: 80;
+    text-align: center;
+}
+.przekupstwo_from {
+    width: 12.5%;
+    height: 100%;
+}
+
+#przekupstwo_from_1 {
+    background-color: red;
+    box-shadow: inset 0 0 5vw darkred
+}
+
+#przekupstwo_from_2 {
+    background-color: blue;
+    box-shadow: inset 0 0 5vw darkblue
+}
+
+#przekupstwo_from_3 {
+    background-color: green;
+    box-shadow: inset 0 0 5vw darkgreen
+}
+
+#przekupstwo_from_4 {
+    background-color: yellow;
+    box-shadow: inset 0 0 5vw olive
+}
+
+#przekupstwo_from_5 {
+    background-color: darkgrey;
+    box-shadow: inset 0 0 5vw dimgrey;
+}
+
+#przekupstwo_from_6 {
+    background-color: orange;
+    box-shadow: inset 0 0 5vw saddlebrown
+}
+
+#przekupstwo_from_7 {
+    background-color: pink;
+    box-shadow: inset 0 0 5vw hotpink
+}
+
+#przekupstwo_from_8 {
+    background-color: purple;
+    box-shadow: inset 0 0 5vw indigo
+}
+
+.przekupstwo_to {
+    width: 12.5%;
+    height: 100%;
+}
+
+#przekupstwo_to_1 {
+    background-color: red;
+    box-shadow: inset 0 0 5vw darkred
+}
+
+#przekupstwo_to_2 {
+    background-color: blue;
+    box-shadow: inset 0 0 5vw darkblue
+}
+
+#przekupstwo_to_3 {
+    background-color: green;
+    box-shadow: inset 0 0 5vw darkgreen
+}
+
+#przekupstwo_to_4 {
+    background-color: yellow;
+    box-shadow: inset 0 0 5vw olive
+}
+
+#przekupstwo_to_5 {
+    background-color: darkgrey;
+    box-shadow: inset 0 0 5vw dimgrey;
+}
+
+#przekupstwo_to_6 {
+    background-color: orange;
+    box-shadow: inset 0 0 5vw saddlebrown
+}
+
+#przekupstwo_to_7 {
+    background-color: pink;
+    box-shadow: inset 0 0 5vw hotpink
+}
+
+#przekupstwo_to_8 {
+    background-color: purple;
+    box-shadow: inset 0 0 5vw indigo
+}
+
+#przemowa {
+    background-image: url("assets/przemowa2.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+#przemowa_column_holder {
+    display:flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+    justify-content: space-around;
+}
+
+.przemowa_column {
+    width: 33%;
+    height: 100%;
+}
+
+#przemowa_za {
+    background-color: green;
+    box-shadow: inset 0 0 5vw darkgreen
+}
+
+#przemowa_przeciw {
+    background-color: red;
+    box-shadow: inset 0 0 5vw darkred
+}
+
+
+#wydalenie {
+    background-image: url("assets/wydalenie2.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+#wydalenie1 {
+    background-color: red;
+    box-shadow: inset 0 0 5vw darkred
+}
+
+#wydalenie2 {
+    background-color: blue;
+    box-shadow: inset 0 0 5vw darkblue
+}
+
+#wydalenie3 {
+    background-color: green;
+    box-shadow: inset 0 0 5vw darkgreen
+}
+
+#wydalenie4 {
+    background-color: yellow;
+    box-shadow: inset 0 0 5vw olive
+}
+
+#wydalenie5 {
+    background-color: darkgrey;
+    box-shadow: inset 0 0 5vw dimgrey;
+}
+
+#wydalenie6 {
+    background-color: orange;
+    box-shadow: inset 0 0 5vw saddlebrown
+}
+
+#wydalenie7 {
+    background-color: pink;
+    box-shadow: inset 0 0 5vw hotpink
+}
+
+#wydalenie8 {
+    background-color: purple;
+    box-shadow: inset 0 0 5vw indigo
+}
+
 #results_layout {
     background-color: white;
     height: 100%

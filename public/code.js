@@ -10,6 +10,8 @@ let opinions = [[0,0,0,0],
 var roomID = prompt("Please enter the room ID:")
 var socket = new WebSocket('ws://localhost:443/ws?roomID=' + encodeURIComponent(roomID));
 var latest_players;
+let przekupujacy = 0;
+let przekupywany = 0;
 
 let marszalekTab = 0;
 //0 - Axes, 1 - Afera, 2 - Koryto, 3 - Actions
@@ -96,6 +98,23 @@ function voteZa() {
     }
 }
 
+function SetPlayerCount(playerID, count){
+    const message = {
+        action: "updateCount",
+        playerID: playerID,
+        count: count
+    }
+    socket.send(JSON.stringify(message))
+}
+
+function modifyPlayerCount(playerID, count){
+    const message = {
+        action: "modifyCount",
+        playerID: playerID,
+        count: count
+    }
+    socket.send(JSON.stringify(message))
+}
 
 function votePrzeciw() {
     const message = {
@@ -574,6 +593,7 @@ function pingServer(){
 // Clickables, Event Listeners, Interactables
 
 function updateCSSforTabChange(){
+    $(".card_gui").css("display", "none")
     switch(marszalekTab) {
         case 0:
             $(".tab").css("display", "none")
@@ -702,6 +722,84 @@ $(document).ready(function() {
         $("#body").addClass("show-prezes")
     })
 
+    $("#przekupstwo").on('click', function() {
+        $(".card_gui").css("display", "none")
+        $("#przekupstwo_gui").css("display", "block")
+    })
+
+    $(".przekupstwo_from_button").on('click', function() {
+        przekupywany = parseInt($(this).attr('id').slice(-1))
+        if(przekupujacy != 0){
+            modifyPlayerCount(przekupywany, -15)
+            modifyPlayerCount(przekupujacy, +15)
+            przekupujacy = 0
+            przekupywany = 0
+            $(".card_gui").css("display", "none")
+        }
+    })
+
+    $(".przekupstwo_to_button").on('click', function() {
+        przekupujacy = parseInt($(this).attr('id').slice(-1))
+        if(przekupywany != 0){
+            modifyPlayerCount(przekupywany, -15)
+            modifyPlayerCount(przekupujacy, +15)
+            przekupujacy = 0
+            przekupywany = 0
+            $(".card_gui").css("display", "none")
+        }
+    })
+
+    $("#dyscyplina").on('click', function() {
+        $(".card_gui").css("display", "none")
+        $("#dyscyplina_gui").css("display", "block")
+    })
+
+    $(".dyscyplina_button").on('click', function() {
+        $(".card_gui").css("display", "none")
+        thisID = parseInt($(this).attr('id').slice(-1))
+        socket.send(JSON.stringify({action: "dyscyplina", playerID: thisID}))
+        $(".card_gui").css("display", "none")
+    })
+
+    $("#negocjacje").on('click', function() {
+        $(".card_gui").css("display", "none")
+        $("#negocjacje_gui").css("display", "block")
+    })
+
+    $(".negocjacje_button").on('click', function() {
+        $(".card_gui").css("display", "none")
+        thisID = parseInt($(this).attr('id').slice(-1))
+        socket.send(JSON.stringify({action: "negocjacje", playerID: thisID}))
+        $(".card_gui").css("display", "none")
+    })
+
+    $("#przemowa").on('click', function() {
+        $(".card_gui").css("display", "none")
+        $("#przemowa_gui").css("display", "block")
+    })
+
+    $("#przemowa_za").on('click', function() {
+        $(".card_gui").css("display", "none")
+        socket.send(JSON.stringify({action: "przemowa", count: 50}))
+        $(".card_gui").css("display", "none")
+    })
+    $("#przemowa_przeciw").on('click', function() {
+        $(".card_gui").css("display", "none")
+        socket.send(JSON.stringify({action: "przemowa", count: -50}))
+        $(".card_gui").css("display", "none")
+    })
+
+    $("#wydalenie").on('click', function() {
+        $(".card_gui").css("display", "none")
+        $("#wydalenie_gui").css("display", "block")
+    })
+
+    $(".wydalenie_button").on('click', function() {
+        $(".card_gui").css("display", "none")
+        thisID = parseInt($(this).attr('id').slice(-1))
+        socket.send(JSON.stringify({action: "wydalenie", playerID: thisID}))
+        $(".card_gui").css("display", "none")
+    })
     $(window).on('pagehide', function() {
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ action: "leave", playerID: playerID }));
