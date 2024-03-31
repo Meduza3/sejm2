@@ -179,7 +179,7 @@ body {
     justify-content: space-between;
 }
 .circle {
-    background-color: purple;
+    /* background-color: purple; */
     height: 100%;
     width: 5%;
     border-radius: 50%;

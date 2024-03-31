@@ -9,6 +9,7 @@ let opinions = [[0,0,0,0],
 
 var roomID = prompt("Please enter the room ID:")
 var socket = new WebSocket('ws://localhost:443/ws?roomID=' + encodeURIComponent(roomID));
+var latest_players;
 
 let marszalekTab = 0;
 //0 - Axes, 1 - Afera, 2 - Koryto, 3 - Actions
@@ -27,6 +28,7 @@ socket.onmessage = function(event) {
         updateAxes(data.axes)
     } else if (data.players) {
         console.log("got some data.players uwu")
+        latest_players = data.players
         data.players.forEach((player) => {
             if(player.PlayerId == playerID){
                 opinions = player.opinions
@@ -349,38 +351,7 @@ function drawPlayersNew(players) {
         }
     })
 
-    $(".Player1").css({
-        "background-color": "red",
-        "box-shadow": "inset 0 0 2vw darkred"
-      });
-      $(".Player2").css({
-        "background-color": "blue",
-        "box-shadow": "inset 0 0 2vw darkblue"
-      });
-      $(".Player3").css({
-        "background-color": "green",
-        "box-shadow": "inset 0 0 2vw darkgreen"
-      });
-      $(".Player4").css({
-        "background-color": "yellow",
-        "box-shadow": "inset 0 0 2vw olive"
-      });
-      $(".Player5").css({
-        "background-color": "darkgrey",
-        "box-shadow": "inset 0 0 2vw dimgrey"
-      });
-      $(".Player6").css({
-        "background-color": "orange",
-        "box-shadow": "inset 0 0 2vw saddlebrown"
-      });
-      $(".Player7").css({
-        "background-color": "pink",
-        "box-shadow": "inset 0 0 2vw hotpink"
-      });
-      $(".Player8").css({
-        "background-color": "purple",
-        "box-shadow": "inset 0 0 2vw indigo"
-      });
+    colorPlayers()
 
       $(".opinion_cube").on('click', function() {
         event.stopPropagation()
@@ -426,6 +397,8 @@ function drawPlayersNew(players) {
     }
 }
 
+var pawn
+
 function drawPlayersAfera(players) {
     $(".afera_pawn").remove();
     players.forEach((player) => {
@@ -434,6 +407,32 @@ function drawPlayersAfera(players) {
         $(`#afera${player_afera}`).append(`<div id="${playerId}" class="afera_pawn Player${playerId}"></div>`)
     })
 
+    colorPlayers()
+    $(".afera_pawn").on('click', function() {
+        event.stopPropagation()
+        if(pawn == null){
+            pawn = this
+        }
+    })
+}
+
+function selectAsDestinationForPawn(row){
+    console.log("clicking row")
+    if(pawn){
+        console.log(row)
+        $(row).append(pawn)
+        console.log("Here is what I'm sending: " + $(row).attr(`id`).slice(-1))
+        modifyAfera($(row).attr(`id`).slice(-1), $(pawn).attr('id').slice(-1))
+        pawn = null
+    }
+}
+
+function modifyAfera(afera, playerID) {
+    console.log("Setting afera: "+ afera)
+    socket.send(JSON.stringify({action: "afera", PlayerID: parseInt(playerID), Afera: parseInt(afera)}))
+}
+
+function colorPlayers() {
     $(".Player1").css({
         "background-color": "red",
         "box-shadow": "inset 0 0 2vw darkred"
@@ -466,8 +465,12 @@ function drawPlayersAfera(players) {
         "background-color": "purple",
         "box-shadow": "inset 0 0 2vw indigo"
       });
-}
+      $(".Niezrzeszony").css({
+        "background-color": "black",
+        "box-shadow": "inset 0 0 2vw black"
+      });
 
+}
 function setUstawa(code) {
     socket.send(JSON.stringify({ action: "ustawa", ustawa: code }))
 }
@@ -599,19 +602,52 @@ function updateCSSforTabChange(){
     }
 }
 
-function updateKoryto(players) {
+function drawKoryto(){
+    let circleCount = 0;
     var $koryto = $('#koryto');
     for (var i = 0; i < 46; i++) {
         var $row = $('<div class="koryto_row"></div>'); // Create a new row
         for (var j = 0; j < 10; j++) {
-            var $circle = $('<div class="circle"></div>'); // Create a circle
-            $row.append($circle); // Add the circle to the current row
+            var $circle = $(`<div class="circle" id="circle_${circleCount}"></div>`); // Create a circle
+            $row.append($circle);
+            circleCount++
         }
         $koryto.append($row); // Add the completed row to the container
     }
+    colorPlayers()
+}
+
+function updateKoryto(players) {
+    $(".circle").removeClass("Player1")
+    $(".circle").removeClass("Player2")
+    $(".circle").removeClass("Player3")
+    $(".circle").removeClass("Player4")
+    $(".circle").removeClass("Player5")
+    $(".circle").removeClass("Player6")
+    $(".circle").removeClass("Player7")
+    $(".circle").removeClass("Player8")
+    $(".circle").removeClass("Niezrzeszony")
+    console.log("inside updateKoryto")
+    console.log(players)
+    let coloredCirclesCount = 0;
+    for (let player of players) {
+        for (let i = 0; i < player.Count; i++) {
+                $(`#circle_${coloredCirclesCount}`).addClass(`Player${player.Id}`)
+                coloredCirclesCount++;
+        }
+    }
+    for (let i = 459; i >= coloredCirclesCount; i--) {
+        const circle = document.getElementById(`circle_${i}`)
+        if(circle) {
+            $(circle).addClass(`Niezrzeszony`)
+        }
+    }
+    colorPlayers()
 }
 
 $(document).ready(function() {
+
+    drawKoryto()
 
     updateCSSforTabChange()
     $("#axes_button").on('click', function() {
@@ -626,6 +662,7 @@ $(document).ready(function() {
 
     $("#koryto_button").on('click', function() {
         marszalekTab = 2
+        updateKoryto(latest_players)
         updateCSSforTabChange()
     })
 
@@ -633,8 +670,6 @@ $(document).ready(function() {
         marszalekTab = 3
         updateCSSforTabChange()
     })
-
-    updateKoryto()
 
     $('#za').on('click', function() {
         voteZa(playerID);
@@ -656,6 +691,10 @@ $(document).ready(function() {
 
     $(('.klocki_column')).on('click', function() {
         selectAsDestinationForBlock(this)
+    })
+
+    $(('.afera_row_space')).on('click', function() {
+        selectAsDestinationForPawn(this)
     })
 
     $("#results_layout").on('click', function() {

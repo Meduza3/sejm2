@@ -75,6 +75,7 @@ type WSMessage struct {
 	SumaWstrzymal   int            `json:"sumaWstrzymal,omitempty"`
 	NumerGlosowania int            `json:"numer",omitempty`
 	Changes         map[string]int `json:"changes,omitempty"`
+	Afera           int            `json:"afera,omitempty"`
 }
 
 type PlayersMessage struct {
@@ -177,8 +178,34 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		case "opinions":
 			fmt.Println("Handling opinions!")
 			handleOpinion(room, msg.PlayerID, msg.Opinions)
+		case "afera":
+			fmt.Println("Handling afera!")
+			handleAfera(room, msg.PlayerID, msg.Afera)
 		}
 	}
+}
+
+func handleAfera(room *Room, playerID int, afera int) {
+	fmt.Printf("Here is the playerID %d and Afera %d", playerID, afera)
+	player, exists := room.Players[playerID]
+	if !exists {
+		fmt.Println("Player does not exist in this room.")
+	}
+
+	player.Afera = afera
+	room.Players[playerID] = player
+
+	// Convert your players map to a slice
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playersSlice = append(playersSlice, player)
+	}
+
+	// Create an instance of PlayersMessage and set the Players field
+	message := PlayersMessage{Players: playersSlice}
+
+	// Broadcast the message
+	broadcastToRoom(room, message)
 }
 
 func handleOpinion(room *Room, playerID int, opinions [4][4]int) {
@@ -570,7 +597,6 @@ func calculateRound(room *Room) {
 			}
 		}
 		resetVotes(room)
-		lowerAferomierz(room)
 	}
 
 	fmt.Println("Here are the results:")
@@ -590,16 +616,26 @@ func calculateRound(room *Room) {
 	}
 	fmt.Printf("Niezrzeszeni: %d\n", room.Niezrzeszeni)
 	var message = WSMessage{Action: "results", SumaZa: sumaZa, SumaPrzeciw: sumaPrzeciw, SumaWstrzymal: sumaWstrzymal, NumerGlosowania: room.NumerGlosowania, Changes: changes}
+	playersSlice := make([]Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		playersSlice = append(playersSlice, player)
+	}
+	var message2 = PlayersMessage{Players: playersSlice}
+	lowerAferomierz(room)
 	broadcastToRoom(room, message)
+	broadcastToRoom(room, message2)
 	room.NumerGlosowania++
 }
 
 func lowerAferomierz(room *Room) {
 	//for players in room change their property Afera to -1, unless its already 0
 	for _, player := range room.Players {
+		fmt.Printf("Lowering aferomierz of player %d from %d to", player.Id, player.Afera)
 		if player.Afera != 0 {
-			player.Afera = -1
+			player.Afera = player.Afera - 1
 		}
+		fmt.Printf(" %d\n", player.Afera)
+		room.Players[player.Id] = player
 	}
 }
 
