@@ -8,7 +8,10 @@ let opinions = [[0,0,0,0],
                 [0,0,0,0]]
 
 var roomID = prompt("Please enter the room ID:")
-var socket = new WebSocket('wss://3.71.19.152:8080/ws?roomID=' + encodeURIComponent(roomID));
+var socket = new WebSocket('ws://localhost:443/ws?roomID=' + encodeURIComponent(roomID));
+
+let marszalekTab = 0;
+//0 - Axes, 1 - Afera, 2 - Koryto, 3 - Actions
 
 socket.onopen = function(e) {
     console.log("Connection established");
@@ -421,6 +424,10 @@ function drawPlayersNew(players) {
     }
 }
 
+function drawPlayersAfera(players) {
+    
+}
+
 function setUstawa(code) {
     socket.send(JSON.stringify({ action: "ustawa", ustawa: code }))
 }
@@ -515,16 +522,72 @@ function selectAsDestinationForBlock(column){
 
 
 }
-
+/*
 function pingServer(){
     console.log("pinging server.")
     socket.send(`${roomID}: ${playerID}: ping`)
 }
-
+*/
 // Clickables, Event Listeners, Interactables
+
+function updateCSSforTabChange(){
+    switch(marszalekTab) {
+        case 0:
+            $(".tab").css("display", "none")
+            $("#axes_tab").css("display","block")
+            break
+        case 1:
+            $(".tab").css("display", "none")
+            $("#afera_tab").css("display","block")
+            break
+        case 2:
+            $(".tab").css("display", "none")
+            $("#koryto_tab").css("display","block")
+            break
+        case 3:
+            $(".tab").css("display", "none")
+            $("#actions_tab").css("display","block")
+            break  
+    }
+}
+
+function updateKoryto() {
+    var $koryto = $('#koryto');
+    for (var i = 0; i < 46; i++) {
+        var $row = $('<div class="koryto_row"></div>'); // Create a new row
+        for (var j = 0; j < 10; j++) {
+            var $circle = $('<div class="circle"></div>'); // Create a circle
+            $row.append($circle); // Add the circle to the current row
+        }
+        $koryto.append($row); // Add the completed row to the container
+    }
+}
+
 $(document).ready(function() {
 
-    setTimeout(pingServer, 25000)
+    updateCSSforTabChange()
+    $("#axes_button").on('click', function() {
+        marszalekTab = 0
+        updateCSSforTabChange()
+    })
+
+    $("#afera_button").on('click', function() {
+        marszalekTab = 1
+        updateCSSforTabChange()
+    })
+
+    $("#koryto_button").on('click', function() {
+        marszalekTab = 2
+        updateCSSforTabChange()
+    })
+
+    $("#actions_button").on('click', function() {
+        marszalekTab = 3
+        updateCSSforTabChange()
+    })
+
+    updateKoryto()
+
     $('#za').on('click', function() {
         voteZa(playerID);
     });

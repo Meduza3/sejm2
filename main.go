@@ -19,6 +19,7 @@ type Player struct {
 	Count    int
 	Opinions [4][4]int
 	Vote     Vote
+	Afera    int
 }
 
 type Room struct {
@@ -378,7 +379,8 @@ func handleJoin(room *Room, ws *websocket.Conn) {
 			{c, clampToFour(c + randMod()), clampToFour(c + randMod()), clampToFour(c + randMod())},
 			{d, clampToFour(d + randMod()), clampToFour(d + randMod()), clampToFour(d + randMod())},
 		},
-		Vote: NULL,
+		Vote:  NULL,
+		Afera: 0,
 	}
 	fmt.Printf("%s: Player %d joined\n", room.ID, player.Id)
 	room.Players[player.Id] = player
@@ -470,7 +472,7 @@ func calculateRound(room *Room) {
 					}
 				}
 				if bloczki != 0 {
-					var odchodzacy = math.Ceil((bloczki / 100) * 0.2 * float64(gracz.Count)) // Mamy ilosc odchodzacych
+					var odchodzacy = math.Ceil((bloczki / 100) * 0.2 * float64(gracz.Count) * convertAferomierzToMultiplier(gracz.Afera)) // Mamy ilosc odchodzacych
 					fmt.Printf("%s: Gracz %d, os %s: Wkurzylo sie %d bloczkow, co daje %d odchodzacych\n", room.ID, gracz.Id, numToAxis(i), int(bloczki/25), int(odchodzacy))
 					naTejOsiWystajeNaPrawo := wystawalbyNaPrawo(gracz.Opinions[i][:], room.Axes[i])
 					if naTejOsiWystajeNaPrawo {
@@ -568,6 +570,7 @@ func calculateRound(room *Room) {
 			}
 		}
 		resetVotes(room)
+		lowerAferomierz(room)
 	}
 
 	fmt.Println("Here are the results:")
@@ -589,6 +592,30 @@ func calculateRound(room *Room) {
 	var message = WSMessage{Action: "results", SumaZa: sumaZa, SumaPrzeciw: sumaPrzeciw, SumaWstrzymal: sumaWstrzymal, NumerGlosowania: room.NumerGlosowania, Changes: changes}
 	broadcastToRoom(room, message)
 	room.NumerGlosowania++
+}
+
+func lowerAferomierz(room *Room) {
+	//for players in room change their property Afera to -1, unless its already 0
+	for _, player := range room.Players {
+		if player.Afera != 0 {
+			player.Afera = -1
+		}
+	}
+}
+
+func convertAferomierzToMultiplier(afera int) float64 {
+	switch afera {
+	case 0:
+	case 1:
+	case 2:
+		return 1
+	case 3:
+	case 4:
+		return 1.5
+	case 5:
+		return 3
+	}
+	return 1
 }
 
 func wystawalbyNaPrawo(opinion []int, legislation int) bool {
@@ -694,7 +721,7 @@ func isInLegislationArea(opinion int, legislation int) bool {
 
 func main() {
 
-	playersStr := flag.String("players", "8", "The number of players")
+	playersStr := flag.String("players", "4", "The number of players")
 
 	// Parse the command-line flags
 	flag.Parse()
@@ -704,9 +731,18 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/ws", handleConnections)
 
-	fmt.Printf("Server started on port %s\n!!!", "8080")
+	port := "443"
+	fmt.Printf("Server started on port %s\n!!!", port)
 
-	err := http.ListenAndServe(":"+"8080", nil)
+	//certPath := "/etc/letsencrypt/live/grawsejm.pl/fullchain.pem"
+	//keyPath := "/etc/letsencrypt/live/grawsejm.pl/privkey.pem"
+	/*
+		http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, r * http.Request) {
+			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
+		}))
+	*/
+	//Change to ListenAndServeTSL(":"+port, certPath, keyPath, nil)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic(err)
 	}
