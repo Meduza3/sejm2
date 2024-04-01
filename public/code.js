@@ -8,6 +8,7 @@ let opinions = [[0,0,0,0],
                 [0,0,0,0]]
 
 var roomID = prompt("Please enter the room ID:")
+const userToken = localStorage.getItem('userToken')
 var socket = new WebSocket('ws://localhost:443/ws?roomID=' + encodeURIComponent(roomID));
 var latest_players;
 let przekupujacy = 0;
@@ -18,7 +19,13 @@ let marszalekTab = 0;
 
 socket.onopen = function(e) {
     console.log("Connection established");
-    socket.send(JSON.stringify({action: "join"}))
+    if(userToken != null){
+        console.log("Joining! This is my token: " + userToken)
+        socket.send(JSON.stringify({action: "joinWithToken", token: userToken}))
+    } else {
+        console.log("Generating a new Token!")
+        socket.send(JSON.stringify({action: "generateToken"}))
+    }
 }
 
 socket.onmessage = function(event) {
@@ -26,6 +33,11 @@ socket.onmessage = function(event) {
     console.log("Recieved data:", data);
     if(data.Id && !playerID) {
         playerID = data.Id
+    } else if (data.token) {
+        console.log("Got a new token!")
+        localStorage.setItem('userToken', data.token);
+        userToken = localStorage.getItem('userToken')
+        socket.send(JSON.stringify({action: "joinWithToken", token: userToken}))
     } else if (data.axes) {
         updateAxes(data.axes)
     } else if (data.players) {
@@ -39,6 +51,7 @@ socket.onmessage = function(event) {
         drawPlayersNew(data.players);
         drawPlayersAfera(data.players);
         updateKoryto(data.players);
+        updateAxes(data.axes)
     } else if (data.action == "resetVotes") {
         console.log("Resetting the vote");
         toggleButtonState(null, true); // Force reset without toggling any specific button

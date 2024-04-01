@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"math"
@@ -21,6 +22,7 @@ type Player struct {
 	Vote       Vote
 	Afera      int
 	Dyscyplina int
+	Token      string
 }
 
 type Room struct {
@@ -82,10 +84,15 @@ type WSMessage struct {
 	Afera           int            `json:"afera,omitempty"`
 	Count           int            `json:"count,omitempty"`
 	Euro            int            `json:"euro,omitempty"`
+	Token           string         `json:"token,omitempty"`
 }
 
 type PlayersMessage struct {
 	Players []Player `json:"players"`
+}
+
+type TokenMessage struct {
+	Token string `json:"token"`
 }
 
 type IdMessage struct {
@@ -171,9 +178,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		//fmt.Printf("%s: Received message: %+v\n", room.ID, msg)
 
 		switch msg.Action {
-		case "join":
-			fmt.Println("Test")
-			handleJoin(room, ws)
+		case "joinWithToken":
+			fmt.Printf("Got a request to join with this token: %s\n", msg.Token)
+			handleJoinWithToken(room, ws, msg.Token)
 		case "leave":
 			handleLeave(room, msg.PlayerID)
 		case "za":
@@ -208,6 +215,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			handlePrzemowa(room, msg.Count)
 		case "euro":
 			toggleEuro(room)
+		case "generateToken":
+			token, _ := generateToken(32)
+			ws.WriteJSON(TokenMessage{Token: token})
 		}
 	}
 }
@@ -423,7 +433,7 @@ func handleLeave(room *Room, playerID int) {
 	//defer room.Mu.Unlock()
 
 	fmt.Printf("%s: Player %d LEFT\n", room.ID, playerID)
-	delete(room.Players, playerID)
+	//delete(room.Players, playerID)
 	playersSlice := make([]Player, 0, len(room.Players))
 	for _, player := range room.Players {
 		playersSlice = append(playersSlice, player)
@@ -524,6 +534,79 @@ func checkForEndOfRound(room *Room) {
 	}
 }
 
+func generateToken(tokenLength int) (string, error) {
+	bytes := make([]byte, tokenLength)
+	if _, err := rand.Read(bytes); err != nil {
+		// Return an empty string and the error if there's an issue generating the token
+		return "", err
+	}
+
+	// Return the hexadecimal encoding of the token
+	return hex.EncodeToString(bytes), nil
+}
+
+func findPlayerByToken(players map[int]Player, token string) (Player, bool) {
+	for _, player := range players {
+		if player.Token == token {
+			return player, true // Player found
+		}
+	}
+	return Player{}, false // Player not found
+}
+
+func handleJoinWithToken(room *Room, ws *websocket.Conn, token string) {
+	fmt.Printf("Inside handleJoinWithToken\n")
+	player, found := findPlayerByToken(room.Players, token)
+	if found {
+		fmt.Printf("%s: Player with token %s found in room. That player has ID %d \n", room.ID, token, player.Id)
+		room.Clients[ws] = true
+		playersSlice := make([]Player, 0, len(room.Players))
+		for _, player := range room.Players {
+			playersSlice = append(playersSlice, player)
+		}
+
+		// Create an instance of PlayersMessage and set the Players field
+		message := PlayersMessage{Players: playersSlice}
+		ws.WriteJSON(IdMessage{Id: player.Id})
+		broadcastToRoom(room, message)
+	} else {
+		fmt.Printf("%s: Player with token %s not found in room.\n", room.ID, token)
+		a := randInt()
+		b := randInt()
+		c := randInt()
+		d := randInt()
+		count := math.Floor(float64(460 / numberOfPlayers))
+		playerID := len(room.Players) + 1
+		player := Player{
+			Id:    playerID,
+			Count: int(count),
+			Opinions: [4][4]int{
+				{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
+				{b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
+				{c, clampToFour(c + randMod()), clampToFour(c + randMod()), clampToFour(c + randMod())},
+				{d, clampToFour(d + randMod()), clampToFour(d + randMod()), clampToFour(d + randMod())},
+			},
+			Vote:  NULL,
+			Afera: 0,
+			Token: token,
+		}
+		fmt.Printf("%s: Player %d joined\n", room.ID, player.Id)
+		room.Clients[ws] = true
+		room.Players[player.Id] = player
+
+		// Convert your players map to a slice
+		playersSlice := make([]Player, 0, len(room.Players))
+		for _, player := range room.Players {
+			playersSlice = append(playersSlice, player)
+		}
+
+		// Create an instance of PlayersMessage and set the Players field
+		message := PlayersMessage{Players: playersSlice}
+		ws.WriteJSON(IdMessage{Id: playerID})
+		broadcastToRoom(room, message)
+	}
+}
+
 func handleJoin(room *Room, ws *websocket.Conn) {
 	//broadcastToRoom(room, WSMessage{Action: "someonejoins"})
 	//fmt.Printf("An attempt to join room %s\n", room.ID)
@@ -536,6 +619,7 @@ func handleJoin(room *Room, ws *websocket.Conn) {
 	b := randInt()
 	c := randInt()
 	d := randInt()
+	token, _ := generateToken(32)
 	count := math.Floor(float64(460 / numberOfPlayers))
 	playerID := len(room.Players) + 1
 	player := Player{
@@ -549,6 +633,7 @@ func handleJoin(room *Room, ws *websocket.Conn) {
 		},
 		Vote:  NULL,
 		Afera: 0,
+		Token: token,
 	}
 	fmt.Printf("%s: Player %d joined\n", room.ID, player.Id)
 	room.Players[player.Id] = player
@@ -562,6 +647,7 @@ func handleJoin(room *Room, ws *websocket.Conn) {
 	// Create an instance of PlayersMessage and set the Players field
 	message := PlayersMessage{Players: playersSlice}
 	ws.WriteJSON(IdMessage{Id: playerID})
+	ws.WriteJSON(TokenMessage{Token: token})
 	broadcastToRoom(room, message)
 }
 
