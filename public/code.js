@@ -67,6 +67,12 @@ socket.onmessage = function(event) {
         }
         console.log(change)
         $("#seats").html(changeText)
+    } else if (data.euro) {
+        if(data.euro == 1) {
+            $("#eurowybory").css("filter", "grayscale(100%)")
+        } else if (data.euro == 2) {
+            $("#eurowybory").css("filter", "none")
+        }
     }
     
 }
@@ -800,6 +806,11 @@ $(document).ready(function() {
         socket.send(JSON.stringify({action: "wydalenie", playerID: thisID}))
         $(".card_gui").css("display", "none")
     })
+
+    $("#eurowybory").on('click', function() {
+        socket.send(JSON.stringify({action: "euro"}))
+    })
+
     $(window).on('pagehide', function() {
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ action: "leave", playerID: playerID }));

@@ -32,6 +32,7 @@ type Room struct {
 	Niezrzeszeni    int
 	NumerGlosowania int
 	Przemowa        int
+	Euro            int
 }
 
 var rooms = make(map[string]*Room)
@@ -41,6 +42,7 @@ func CreateRoom(id string) *Room {
 		ID:      id,
 		Players: make(map[int]Player),
 		Clients: make(map[*websocket.Conn]bool),
+		Euro:    1,
 	}
 	rooms[id] = room
 	room.NumerGlosowania = 1
@@ -79,6 +81,7 @@ type WSMessage struct {
 	Changes         map[string]int `json:"changes,omitempty"`
 	Afera           int            `json:"afera,omitempty"`
 	Count           int            `json:"count,omitempty"`
+	Euro            int            `json:"euro,omitempty"`
 }
 
 type PlayersMessage struct {
@@ -87,6 +90,10 @@ type PlayersMessage struct {
 
 type IdMessage struct {
 	Id int `json:"Id"`
+}
+
+type EuroMessage struct {
+	Euro int `json:"euro"`
 }
 
 var (
@@ -199,8 +206,21 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			handleDyscyplina(room, msg.PlayerID)
 		case "przemowa":
 			handlePrzemowa(room, msg.Count)
+		case "euro":
+			toggleEuro(room)
 		}
 	}
+}
+
+func toggleEuro(room *Room) {
+	if room.Euro == 1 {
+		room.Euro = 2
+	} else if room.Euro == 2 {
+		room.Euro = 1
+	}
+
+	message := EuroMessage{Euro: room.Euro}
+	broadcastToRoom(room, message)
 }
 
 func handlePrzemowa(room *Room, przemowa int) {
@@ -620,7 +640,7 @@ func calculateRound(room *Room) {
 					}
 				}
 				if bloczki != 0 {
-					var odchodzacy = math.Ceil((bloczki / 100) * 0.2 * float64(gracz.Count) * convertAferomierzToMultiplier(gracz.Afera)) // Mamy ilosc odchodzacych
+					var odchodzacy = math.Ceil(float64(room.Euro) * (bloczki / 100) * 0.2 * float64(gracz.Count) * convertAferomierzToMultiplier(gracz.Afera)) // Mamy ilosc odchodzacych
 					if gracz.Dyscyplina > 0 {
 						odchodzacy -= 10
 						gracz.Dyscyplina -= 1
