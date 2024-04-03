@@ -575,11 +575,11 @@ func handleJoinWithToken(room *Room, ws *websocket.Conn, token string) {
 		b := randInt()
 		c := randInt()
 		d := randInt()
-		count := math.Floor(float64(460 / numberOfPlayers))
+		//count := math.Floor(float64(460 / numberOfPlayers))
 		playerID := len(room.Players) + 1
 		player := Player{
 			Id:    playerID,
-			Count: int(count),
+			Count: 92,
 			Opinions: [4][4]int{
 				{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
 				{b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},

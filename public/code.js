@@ -9,7 +9,7 @@ let opinions = [[0,0,0,0],
 
 var roomID = prompt("Please enter the room ID:")
 const userToken = localStorage.getItem('userToken')
-var socket = new WebSocket('ws://localhost:443/ws?roomID=' + encodeURIComponent(roomID));
+var socket = new WebSocket('ws://192.168.0.111:443/ws?roomID=' + encodeURIComponent(roomID));
 var latest_players;
 let przekupujacy = 0;
 let przekupywany = 0;
@@ -599,6 +599,7 @@ function selectAsDestinationForBlock(column){
         $(".klocki_column").css({"border":"0px solid black"})
         modifyOpinion()
         cube = null
+        updateAxes()
     }
 
 
@@ -688,10 +689,17 @@ $(document).ready(function() {
 
     drawKoryto()
 
+    document.addEventListener('click', function enableNoSleep() {
+        document.removeEventListener('click', enableNoSleep, false);
+        var noSleep = new NoSleep();
+        noSleep.enable();
+      }, false);
+
     updateCSSforTabChange()
     $("#axes_button").on('click', function() {
         marszalekTab = 0
         updateCSSforTabChange()
+        updateAxes()
     })
 
     $("#afera_button").on('click', function() {
