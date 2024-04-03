@@ -1,5 +1,6 @@
 body {
     background-color: rgb(128, 53, 26);
+    filter: grayscale(100%);
 }
 
 .axis {

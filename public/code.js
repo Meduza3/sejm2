@@ -9,16 +9,22 @@ let opinions = [[0,0,0,0],
 
 var roomID = prompt("Please enter the room ID:")
 const userToken = localStorage.getItem('userToken')
-var socket = new WebSocket('ws://192.168.0.111:443/ws?roomID=' + encodeURIComponent(roomID));
+var socket;
+var axes = [0, 0, 0, 0];
+
 var latest_players;
 let przekupujacy = 0;
 let przekupywany = 0;
 
 let marszalekTab = 0;
 //0 - Axes, 1 - Afera, 2 - Koryto, 3 - Actions
+function connectWebSocket()  {
+    socket = new WebSocket("ws://192.168.0.111:443/ws?roomID=" + encodeURIComponent(roomID))
 
+    
 socket.onopen = function(e) {
     console.log("Connection established");
+    $("#body").css("filter", "none")
     if(userToken != null){
         console.log("Joining! This is my token: " + userToken)
         socket.send(JSON.stringify({action: "joinWithToken", token: userToken}))
@@ -28,6 +34,7 @@ socket.onopen = function(e) {
     }
 }
 
+    
 socket.onmessage = function(event) {
     var data = JSON.parse(event.data);
     console.log("Recieved data:", data);
@@ -39,7 +46,8 @@ socket.onmessage = function(event) {
         userToken = localStorage.getItem('userToken')
         socket.send(JSON.stringify({action: "joinWithToken", token: userToken}))
     } else if (data.axes) {
-        updateAxes(data.axes)
+        axes = data.axes
+        updateAxes(axes)
     } else if (data.players) {
         console.log("got some data.players uwu")
         latest_players = data.players
@@ -51,7 +59,7 @@ socket.onmessage = function(event) {
         drawPlayersNew(data.players);
         drawPlayersAfera(data.players);
         updateKoryto(data.players);
-        updateAxes(data.axes)
+        updateAxes(axes)
     } else if (data.action == "resetVotes") {
         console.log("Resetting the vote");
         toggleButtonState(null, true); // Force reset without toggling any specific button
@@ -94,12 +102,16 @@ socket.onclose = function(event) {
     if (event.wasClean) {
         console.log(`Connection closed cleanly, code=${event.code}, reason=${event.reason}`)
     } else {
-        console.log('Connection died')
+        console.log('Connection died, attempting to reconnect...');
+        $("#body").css("filter", "grayscale(100%)")
+            // Attempt to reconnect
+            setTimeout(connectWebSocket, 1000); // Reconnect after 1 second
     }
 }
 
 socket.onerror = function(error) {
     console.error(`[Websocket Error] ${error.message}`)
+}
 }
 
 //!!! Definitions
@@ -599,7 +611,7 @@ function selectAsDestinationForBlock(column){
         $(".klocki_column").css({"border":"0px solid black"})
         modifyOpinion()
         cube = null
-        updateAxes()
+        updateAxes(axes)
     }
 
 
@@ -688,6 +700,7 @@ function updateKoryto(players) {
 $(document).ready(function() {
 
     drawKoryto()
+    connectWebSocket()
 
     document.addEventListener('click', function enableNoSleep() {
         document.removeEventListener('click', enableNoSleep, false);
@@ -699,7 +712,7 @@ $(document).ready(function() {
     $("#axes_button").on('click', function() {
         marszalekTab = 0
         updateCSSforTabChange()
-        updateAxes()
+        updateAxes(axes)
     })
 
     $("#afera_button").on('click', function() {
