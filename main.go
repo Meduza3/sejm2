@@ -16,13 +16,20 @@ import (
 )
 
 type Player struct {
-	Id         int
-	Count      int
-	Opinions   [4][4]int
-	Vote       Vote
-	Afera      int
-	Dyscyplina int
-	Token      string
+	Id          int
+	Count       int
+	Opinions    [4][4]int
+	Vote        Vote
+	Afera       int
+	Dyscyplina  int
+	Token       string
+	Multipliers [4]float64
+	prioA       bool
+	prioB       bool
+	prioC       bool
+	prioD       bool
+	drzwi       bool
+	zachwiana   bool
 }
 
 type Room struct {
@@ -35,16 +42,18 @@ type Room struct {
 	NumerGlosowania int
 	Przemowa        int
 	Euro            int
+	StartingCount   int
 }
 
 var rooms = make(map[string]*Room)
 
 func CreateRoom(id string) *Room {
 	room := &Room{
-		ID:      id,
-		Players: make(map[int]Player),
-		Clients: make(map[*websocket.Conn]bool),
-		Euro:    1,
+		ID:            id,
+		Players:       make(map[int]Player),
+		Clients:       make(map[*websocket.Conn]bool),
+		Euro:          1,
+		StartingCount: 115,
 	}
 	rooms[id] = room
 	room.NumerGlosowania = 1
@@ -85,6 +94,7 @@ type WSMessage struct {
 	Count           int            `json:"count,omitempty"`
 	Euro            int            `json:"euro,omitempty"`
 	Token           string         `json:"token,omitempty"`
+	Prio            int            `json:"prio,omitempty"`
 }
 
 type PlayersMessage struct {
@@ -215,6 +225,20 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			handlePrzemowa(room, msg.Count)
 		case "euro":
 			toggleEuro(room)
+		case "prio_a":
+			handlePrioA(room, msg.PlayerID)
+		case "prio_b":
+			handlePrioB(room, msg.PlayerID)
+		case "prio_c":
+			handlePrioC(room, msg.PlayerID)
+		case "prio_d":
+			handlePrioD(room, msg.PlayerID)
+		case "zachwiana_lojalnosc":
+			handleZachwiana(room, msg.PlayerID)
+		case "otwarte_drzwi":
+			handleOtwarteDrzwi(room, msg.PlayerID)
+		case "dezercja":
+			handleDezercja(room, msg.PlayerID)
 		case "generateToken":
 			token, _ := generateToken(32)
 			ws.WriteJSON(TokenMessage{Token: token})
@@ -222,6 +246,172 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleOtwarteDrzwi(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+	} else {
+		var prio = 1
+		if player.drzwi {
+			player.drzwi = false
+			prio = 2
+		} else {
+			player.drzwi = true
+			prio = 1
+		}
+		room.Players[playerID] = player
+		message := WSMessage{Action: "drzwi", PlayerID: playerID, Prio: prio}
+		broadcastToRoom(room, message)
+	}
+
+}
+
+func handleDezercja(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+	} else {
+		var odch = int(math.Floor(float64(player.Count) * 0.1))
+		player.Count -= odch
+		room.Players[playerID] = player
+		room.Niezrzeszeni += odch
+		playersSlice := make([]Player, 0, len(room.Players))
+		for _, player := range room.Players {
+			playersSlice = append(playersSlice, player)
+		}
+		message := PlayersMessage{Players: playersSlice}
+		broadcastToRoom(room, message)
+	}
+
+}
+
+func handleZachwiana(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+
+	} else {
+		var prio = 1
+		if player.zachwiana {
+			player.zachwiana = false
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{2.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0}[i]
+				prio = 2
+			}
+		} else {
+			player.zachwiana = true
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{3.0 / 2.0, 3.0 / 2.0, 3.0 / 2.0, 3.0 / 2.0}[i]
+				prio = 1
+			}
+		}
+
+		room.Players[playerID] = player
+		message := WSMessage{Action: "lojalnosc", PlayerID: playerID, Prio: prio}
+		broadcastToRoom(room, message)
+	}
+}
+
+func handlePrioA(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+
+	} else {
+		var prio = 1
+		if player.prioA {
+			player.prioA = false
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{1.0 / 2.0, 3.0 / 2.0, 3.0 / 2.0, 3.0 / 2.0}[i]
+				prio = 2
+			}
+		} else {
+			player.prioA = true
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{2.0, 2.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0}[i]
+				prio = 1
+			}
+		}
+
+		room.Players[playerID] = player
+		message := WSMessage{Action: "prio_a", PlayerID: playerID, Prio: prio}
+		broadcastToRoom(room, message)
+	}
+}
+
+func handlePrioB(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+
+	} else {
+		var prio = 1
+		if player.prioB {
+			player.prioB = false
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{3.0 / 2.0, 1.0 / 2.0, 3.0 / 2.0, 3.0 / 2.0}[i]
+				prio = 2
+			}
+		} else {
+			player.prioB = true
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{2.0 / 3.0, 2.0, 2.0 / 3.0, 2.0 / 3.0}[i]
+				prio = 1
+			}
+		}
+
+		room.Players[playerID] = player
+		message := WSMessage{Action: "prio_b", PlayerID: playerID, Prio: prio}
+		broadcastToRoom(room, message)
+	}
+}
+
+func handlePrioC(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+
+	} else {
+		var prio = 1
+		if player.prioC {
+			player.prioC = false
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{3.0 / 2.0, 3.0 / 2.0, 1.0 / 2.0, 3.0 / 2.0}[i]
+				prio = 2
+			}
+		} else {
+			player.prioC = true
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{2.0 / 3.0, 2.0 / 3.0, 2.0, 2.0 / 3.0}[i]
+				prio = 1
+			}
+		}
+
+		room.Players[playerID] = player
+		message := WSMessage{Action: "prio_c", PlayerID: playerID, Prio: prio}
+		broadcastToRoom(room, message)
+	}
+}
+
+func handlePrioD(room *Room, playerID int) {
+	player, exists := room.Players[playerID]
+	if !exists {
+
+	} else {
+		var prio = 1
+		if player.prioD {
+			player.prioD = false
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{3.0 / 2.0, 3.0 / 2.0, 3.0 / 2.0, 1.0 / 2.0}[i]
+				prio = 2
+			}
+		} else {
+			player.prioD = true
+			for i := range player.Multipliers {
+				player.Multipliers[i] *= [4]float64{2.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0, 2.0}[i]
+				prio = 1
+			}
+		}
+
+		room.Players[playerID] = player
+		message := WSMessage{Action: "prio_d", PlayerID: playerID, Prio: prio}
+		broadcastToRoom(room, message)
+	}
+}
 func toggleEuro(room *Room) {
 	if room.Euro == 1 {
 		room.Euro = 2
@@ -579,16 +769,17 @@ func handleJoinWithToken(room *Room, ws *websocket.Conn, token string) {
 		playerID := len(room.Players) + 1
 		player := Player{
 			Id:    playerID,
-			Count: 92,
+			Count: room.StartingCount,
 			Opinions: [4][4]int{
 				{a, clampToFour(a + randMod()), clampToFour(a + randMod()), clampToFour(a + randMod())},
 				{b, clampToFour(b + randMod()), clampToFour(b + randMod()), clampToFour(b + randMod())},
 				{c, clampToFour(c + randMod()), clampToFour(c + randMod()), clampToFour(c + randMod())},
 				{d, clampToFour(d + randMod()), clampToFour(d + randMod()), clampToFour(d + randMod())},
 			},
-			Vote:  NULL,
-			Afera: 0,
-			Token: token,
+			Vote:        NULL,
+			Afera:       0,
+			Token:       token,
+			Multipliers: [4]float64{1, 1, 1, 1},
 		}
 		fmt.Printf("%s: Player %d joined\n", room.ID, player.Id)
 		room.Clients[ws] = true
@@ -726,7 +917,7 @@ func calculateRound(room *Room) {
 					}
 				}
 				if bloczki != 0 {
-					var odchodzacy = math.Ceil(float64(room.Euro) * (bloczki / 100) * 0.2 * float64(gracz.Count) * convertAferomierzToMultiplier(gracz.Afera)) // Mamy ilosc odchodzacych
+					var odchodzacy = math.Ceil(float64(room.Euro) * (bloczki / 100) * 0.2 * float64(gracz.Count) * float64(gracz.Multipliers[i]) * convertAferomierzToMultiplier(gracz.Afera)) // Mamy ilosc odchodzacych
 					if gracz.Dyscyplina > 0 {
 						odchodzacy -= 10
 						gracz.Dyscyplina -= 1
@@ -832,6 +1023,18 @@ func calculateRound(room *Room) {
 			}
 		}
 		resetVotes(room)
+		resetUstawa(room)
+		if gracz.drzwi {
+			if room.Niezrzeszeni > 3 {
+				room.Niezrzeszeni -= 3
+				gracz.Count += 3
+			} else if room.Niezrzeszeni > 0 {
+				gracz.Count += room.Niezrzeszeni
+				room.Niezrzeszeni = 0
+			}
+			room.Players[gracz.Id] = gracz
+		}
+		//resetVotes(room)
 	}
 
 	fmt.Println("Here are the results:")
@@ -860,6 +1063,16 @@ func calculateRound(room *Room) {
 	broadcastToRoom(room, message)
 	broadcastToRoom(room, message2)
 	room.NumerGlosowania++
+}
+
+func resetUstawa(room *Room) {
+	room.Axes[0] = 0
+	room.Axes[1] = 0
+	room.Axes[2] = 0
+	room.Axes[3] = 0
+	axesData := map[string][4]int{"axes": room.Axes}
+	broadcastToRoom(room, axesData)
+
 }
 
 func lowerAferomierz(room *Room) {
@@ -1007,11 +1220,7 @@ func main() {
 
 	//certPath := "/etc/letsencrypt/live/grawsejm.pl/fullchain.pem"
 	//keyPath := "/etc/letsencrypt/live/grawsejm.pl/privkey.pem"
-	/*
-		http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, r * http.Request) {
-			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
-		}))
-	*/
+
 	//err := http.ListenAndServeTLS(":"+port, certPath, keyPath, nil)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
