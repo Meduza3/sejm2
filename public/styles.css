@@ -189,6 +189,7 @@ body {
 #actions_space {
     background-color: lightgray;
     height: 100%;
+    overflow-y: auto;
     width: 100%;
     display: flex;
 }
@@ -524,6 +525,61 @@ body {
     background-repeat: no-repeat;
     background-size: 100% 100%;
     filter: grayscale(100%);
+}
+
+#prio_a {
+    background-image: url("assets/charakter.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    filter: grayscale(100%);
+}
+
+#prio_b {
+    background-image: url("assets/charakter.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    filter: grayscale(100%);
+}
+
+#prio_c {
+    background-image: url("assets/charakter.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    filter: grayscale(100%);
+}
+
+#prio_d {
+    background-image: url("assets/charakter.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    filter: grayscale(100%);
+}
+
+#otwarte_drzwi {
+    background-image: url("assets/charakter.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    filter: grayscale(100%);
+}
+
+#zachwiana_lojalnosc {
+    background-image: url("assets/afera.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    filter: grayscale(100%);
+}
+
+#dezercja {
+    background-image: url("assets/afera.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
 }
 
 #results_layout {

@@ -19,7 +19,8 @@ let przekupywany = 0;
 let marszalekTab = 0;
 //0 - Axes, 1 - Afera, 2 - Koryto, 3 - Actions
 function connectWebSocket()  {
-    socket = new WebSocket("ws://192.168.0.111:443/ws?roomID=" + encodeURIComponent(roomID))
+    socket = new WebSocket("ws://192.168.1.14:443/ws?roomID=" + encodeURIComponent(roomID))
+    //socket = new WebSocket("ws://localhost:443/ws?roomID=" + encodeURIComponent(roomID))
 
     
 socket.onopen = function(e) {
@@ -63,7 +64,56 @@ socket.onmessage = function(event) {
     } else if (data.action == "resetVotes") {
         console.log("Resetting the vote");
         toggleButtonState(null, true); // Force reset without toggling any specific button
-    } else if (data.action == "results") {
+    } else if (data.action == "prio_a") {
+        if(data.playerID == playerID) {
+            if(data.prio == 1) {
+                $("#prio_a").css("filter", "none")
+            } else if (data.prio == 2) {
+                $("#prio_a").css("filter", "grayscale(100%)")
+            }
+        }
+    } else if (data.action == "prio_b") {
+        if(data.playerID == playerID) {
+            if(data.prio == 1) {
+                $("#prio_b").css("filter", "none")
+            } else if (data.prio == 2) {
+                $("#prio_b").css("filter", "grayscale(100%)")
+            }
+        }
+    } else if (data.action == "prio_c") {
+        if(data.playerID == playerID) {
+            if(data.prio == 1) {
+                $("#prio_c").css("filter", "none")
+            } else if (data.prio == 2) {
+                $("#prio_c").css("filter", "grayscale(100%)")
+            }
+        }
+    } else if (data.action == "prio_d") {
+        if(data.playerID == playerID) {
+            if(data.prio == 1) {
+                $("#prio_d").css("filter", "none")
+            } else if (data.prio == 2) {
+                $("#prio_d").css("filter", "grayscale(100%)")
+            }
+        }
+    } else if (data.action == "drzwi") {
+        if(data.playerID == playerID) {
+            if(data.prio == 1) {
+                $("#otwarte_drzwi").css("filter", "none")
+            } else if (data.prio == 2) {
+                $("#otwarte_drzwi").css("filter", "grayscale(100%)")
+            }
+        }
+    } else if (data.action == "lojalnosc") {
+        if(data.playerID == playerID) {
+            if(data.prio == 1) {
+                $("#zachwiana_lojalnosc").css("filter", "none")
+            } else if (data.prio == 2) {
+                $("#zachwiana_lojalnosc").css("filter", "grayscale(100%)")
+            }
+        }
+    } 
+    else if (data.action == "results") {
 
         var sumaZa = data.sumaZa ? data.sumaZa : 0
         var sumaPrzeciw = data.sumaPrzeciw ? data.sumaPrzeciw : 0
@@ -844,6 +894,36 @@ $(document).ready(function() {
     $("#eurowybory").on('click', function() {
         socket.send(JSON.stringify({action: "euro"}))
     })
+
+    $("#prio_a").on('click', function() {
+        socket.send(JSON.stringify({action: "prio_a", playerID: playerID}))
+    })
+
+    $("#prio_b").on('click', function() {
+        socket.send(JSON.stringify({action: "prio_b", playerID: playerID}))
+    })
+
+    $("#prio_c").on('click', function() {
+        socket.send(JSON.stringify({action: "prio_c", playerID: playerID}))
+    })
+
+    $("#prio_d").on('click', function() {
+        socket.send(JSON.stringify({action: "prio_d", playerID: playerID}))
+    })
+
+    $("#otwarte_drzwi").on('click', function() {
+        socket.send(JSON.stringify({action: "otwarte_drzwi", playerID: playerID}))
+    })
+
+    $("#dezercja").on('click', function() {
+        socket.send(JSON.stringify({action: "dezercja", playerID: playerID}))
+    })
+
+    $("#zachwiana_lojalnosc").on('click', function() {
+        socket.send(JSON.stringify({action: "zachwiana_lojalnosc", playerID: playerID}))
+    })
+
+    
 
     $(window).on('pagehide', function() {
         if (socket.readyState === WebSocket.OPEN) {
